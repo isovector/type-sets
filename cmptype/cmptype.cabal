@@ -1,0 +1,63 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: af99190c3eb7474472448f8abf9ef25eaee60d1d8db6021dc62f270db9d49f12
+
+name:           cmptype
+version:        0.1.0.0
+synopsis:       Compare types of any kinds
+description:    Please see the README on GitHub at <https://github.com/isovector/type-sets/tree/master/cmptype#readme>
+category:       Type
+homepage:       https://github.com/https://github.com/isovector/type-sets/tree/master/cmptype#readme
+bug-reports:    https://github.com/https://github.com/isovector/type-sets/tree/master/cmptype/issues
+author:         Sandy Maguire
+maintainer:     sandy@sandymaguire.me
+copyright:      2019 Sandy Maguire
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/https://github.com/isovector/type-sets/tree/master/cmptype
+
+library
+  exposed-modules:
+      GHC.NameViolation
+      Type.Compare
+      Type.Compare.Plugin
+  other-modules:
+      Paths_cmptype
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , ghc
+    , ghc-tcplugins-extra
+    , syb
+  default-language: Haskell2010
+
+test-suite test
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  other-modules:
+      ShouldNotTypecheck
+      ShouldTypecheck
+      Paths_cmptype
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -fplugin=Type.Compare.Plugin
+  build-depends:
+      base >=4.7 && <5
+    , cmptype
+    , ghc
+    , ghc-tcplugins-extra
+    , should-not-typecheck
+    , syb
+  default-language: Haskell2010
