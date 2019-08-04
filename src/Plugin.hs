@@ -74,20 +74,17 @@ solve _ _ _ [] = pure $ TcPluginOk [] []
 solve cmp_type _ _ wanted = do
   let rel = fmap (findRelevant cmp_type . ctLoc <*> ctev_pred . cc_ev) wanted
 
-  gs <- for (concat rel) $ \z -> do
-    let t = cmpTypeType z
-        res = doCompare (cmpTypeA z) (cmpTypeB z)
-        EvExpr ev = evByFiat "type-sets" t res
-    newGiven (cmpTypeLoc z) (mkPrimEqPred t res) ev
+  gs <- for (concat rel) $ \(CompareType t res loc) -> do
+    let EvExpr ev = evByFiat "type-sets" t res
+    newGiven loc (mkPrimEqPred t res) ev
 
   pure $ TcPluginOk [] $ fmap CNonCanonical gs
 
 
 data CompareType = CompareType
-  { cmpTypeA :: Type
-  , cmpTypeB :: Type
-  , cmpTypeType :: Type
-  , cmpTypeLoc :: CtLoc
+  { _cmpTypeType :: Type
+  , _cmpTypeNew :: Type
+  , _cmpTypeLoc :: CtLoc
   }
 
 
@@ -96,6 +93,7 @@ findRelevant cmp_type loc = everything (++) $ mkQ [] findCmpType
   where
     findCmpType t =
       case splitTyConApp_maybe t of
-        Just (tc, [_, a, b]) | tc == cmp_type -> [CompareType a b t loc]
+        Just (tc, [_, a, b]) | tc == cmp_type ->
+          [CompareType t (doCompare a b) loc]
         _ -> []
 
