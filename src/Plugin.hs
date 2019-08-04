@@ -1,10 +1,12 @@
 {-# LANGUAGE BangPatterns  #-}
+{-# LANGUAGE LambdaCase    #-}
 {-# LANGUAGE TupleSections #-}
-{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall      #-}
 
 module Plugin (plugin) where
 
 import           Class
+import           Data.Data (Data)
 import           Data.Function
 import           Data.Functor
 import           Data.Generics (everywhere, mkT)
@@ -21,14 +23,6 @@ import           TcPluginM (TcPluginM, tcLookupTyCon)
 import           TcRnTypes
 
 
-replaceCmpType :: TyCon -> Type -> Type
-replaceCmpType cmp_type t =
-  case splitTyConApp_maybe t of
-    Just (tc, [_, a, b]) | tc == cmp_type -> doCompare a b
-    _ -> t
-
-
-
 plugin :: Plugin
 plugin = defaultPlugin
   { tcPlugin = const $ Just $ TcPlugin
@@ -39,18 +33,29 @@ plugin = defaultPlugin
   }
 
 
+replaceCmpType :: Data a => TyCon -> a -> a
+replaceCmpType cmp_type = everywhere $ mkT $ \t ->
+  case splitTyConApp_maybe t of
+    Just (tc, [_, a, b]) | tc == cmp_type -> doCompare a b
+    _ -> t
+
+
 getCmpType :: TcPluginM TyCon
 getCmpType = do
   md <- lookupModule (mkModuleName "CmpType") $ fsLit "type-sets"
   nm <- lookupName md $ mkTcOcc "CmpType"
   tcLookupTyCon nm
 
+
+promoteOrdering :: Ordering -> Type
+promoteOrdering = flip mkTyConApp [] . \case
+   LT -> promotedLTDataCon
+   EQ -> promotedEQDataCon
+   GT -> promotedGTDataCon
+
+
 doCompare :: Type -> Type -> Type
-doCompare a b = flip mkTyConApp [] $
-  case hash a `compare` hash b of
-    LT -> promotedLTDataCon
-    EQ -> promotedEQDataCon
-    GT -> promotedGTDataCon
+doCompare a = promoteOrdering . on compare hash a
 
 
 hash :: Type -> String
@@ -82,16 +87,16 @@ mkWanted' :: TyCon -> Ct -> TcPluginM (Maybe RewrittenWanted)
 mkWanted' cmp_type ct =
   case classifyPredType $ ctEvPred $ ctEvidence ct of
     EqPred NomEq t1 t2 -> do
-      let t = everywhere (mkT $ replaceCmpType cmp_type) t1
+      let t = replaceCmpType cmp_type t1
       case t1 `eqType` t of
         True -> pure Nothing
         False -> do
-          let Just ev = evMagic ct
-          ct' <- CNonCanonical <$> newWanted (ctLoc ct) (mkPrimEqPredRole Nominal t t2)
-          pure $ Just $ RewrittenWanted (OrdType t) (ev, ct) ct'
+          let ev = evByFiat "type-sets" t1 t2
+          ct' <- newWanted (ctLoc ct) (mkPrimEqPredRole Nominal t t2)
+          pure $ Just $ RewrittenWanted (OrdType t) (ev, ct) $ CNonCanonical ct'
 
     ClassPred cls ts -> do
-      let ts' = everywhere (mkT $ replaceCmpType cmp_type) ts
+      let ts' = replaceCmpType cmp_type ts
       case and $ zipWith eqType ts ts' of
         True -> pure Nothing
         False -> do
@@ -134,10 +139,4 @@ instance Eq OrdType where
 instance Ord OrdType where
   compare = nonDetCmpType `on` getOrdType
 
-
-evMagic :: Ct -> Maybe EvTerm
-evMagic ct =
-  case classifyPredType $ ctEvPred $ ctEvidence ct of
-    EqPred NomEq t1 t2 -> Just (evByFiat "type-sets" t1 t2)
-    _                  -> Nothing
 
