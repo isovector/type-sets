@@ -1,0 +1,6 @@
+packages: . cmptype
+
+jobs: $ncpus
+
+package *
+  ghc-options: +RTS -A128m -n2m -RTS
