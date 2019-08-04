@@ -22,9 +22,9 @@ import           TcRnTypes
 
 
 replaceCmpType :: TyCon -> Type -> Type
-replaceCmpType cmpType t =
+replaceCmpType cmp_type t =
   case splitTyConApp_maybe t of
-    Just (tc, [_, a, b]) | tc == cmpType -> doCompare a b
+    Just (tc, [_, a, b]) | tc == cmp_type -> doCompare a b
     _ -> t
 
 
@@ -71,27 +71,33 @@ hash t =
             Nothing -> error "unknown sort of thing"
 
 
+data RewrittenWanted = RewrittenWanted
+  { rwOrig :: OrdType
+  , rwSolved :: (EvTerm, Ct)
+  , rwNew :: Ct
+  }
 
-mkWanted' :: TyCon -> Ct -> TcPluginM (Maybe (OrdType, ((EvTerm, Ct), Ct)))
-mkWanted' cmpType ct =
+
+mkWanted' :: TyCon -> Ct -> TcPluginM (Maybe RewrittenWanted)
+mkWanted' cmp_type ct =
   case classifyPredType $ ctEvPred $ ctEvidence ct of
     EqPred NomEq t1 t2 -> do
-      let t = everywhere (mkT $ replaceCmpType cmpType) t1
+      let t = everywhere (mkT $ replaceCmpType cmp_type) t1
       case t1 `eqType` t of
         True -> pure Nothing
         False -> do
           let Just ev = evMagic ct
           ct' <- CNonCanonical <$> newWanted (ctLoc ct) (mkPrimEqPredRole Nominal t t2)
-          pure $ Just (OrdType t, ((ev, ct), ct'))
+          pure $ Just $ RewrittenWanted (OrdType t) (ev, ct) ct'
 
     ClassPred cls ts -> do
-      let ts' = everywhere (mkT $ replaceCmpType cmpType) ts
+      let ts' = everywhere (mkT $ replaceCmpType cmp_type) ts
       case and $ zipWith eqType ts ts' of
         True -> pure Nothing
         False -> do
           let t = mkTyConApp (classTyCon cls) ts'
           ct' <- newWanted (ctLoc ct) t
-          pure $ Just (OrdType t, ((ctEvTerm $ ct', ct), CDictCan ct' cls ts' False))
+          pure $ Just $ RewrittenWanted (OrdType t) (ctEvTerm $ ct', ct) $ CDictCan ct' cls ts' False
 
     _                  -> pure Nothing
 
@@ -103,16 +109,19 @@ solve
     -> [Ct]  -- wanted
     -> TcPluginM TcPluginResult
 solve _ _ _ [] = pure $ TcPluginOk [] []
-solve (cmpType, ref) _ _ wanted = do
-  -- pprTraceM "wanted" $ vcat $ fmap ppr $ wanted
-  unifications <- catMaybes <$> traverse (mkWanted' cmpType) wanted
-
+solve (cmp_type, ref) _ _ wanted = do
   already_emitted <- tcPluginIO $ readIORef ref
-  let unifications' = filter (not . flip S.member already_emitted . fst) unifications
-  tcPluginIO $ modifyIORef ref $ S.union $ S.fromList $ fmap fst unifications'
 
-  -- pprTraceM "emitting" $ vcat $ fmap (ppr . snd . snd) unifications
-  pure $ TcPluginOk (fmap (fst . snd) unifications') $ fmap (snd . snd) unifications'
+  rewritten <- catMaybes <$> traverse (mkWanted' cmp_type) wanted
+  let filtered = filter (not . flip S.member already_emitted . rwOrig) rewritten
+      solved = fmap rwSolved filtered
+      to_emit = fmap rwNew filtered
+
+  -- pprTraceM "wanted" $ vcat $ fmap ppr $ wanted
+  -- pprTraceM "emitting" $ vcat $ fmap ppr to_emit
+
+  tcPluginIO $ modifyIORef ref $ S.union $ S.fromList $ fmap rwOrig filtered
+  pure $ TcPluginOk solved to_emit
 
 
 newtype OrdType = OrdType
