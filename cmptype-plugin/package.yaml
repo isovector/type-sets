@@ -1,4 +1,4 @@
-name:                type-sets
+name:                cmptype-plugin
 version:             0.1.0.0
 github:              "isovector/type-sets"
 license:             BSD3
@@ -21,7 +21,9 @@ description:         Please see the README on GitHub at <https://github.com/isov
 
 dependencies:
 - base >= 4.7 && < 5
-- cmptype-plugin
+- ghc
+- ghc-tcplugins-extra
+- syb
 
 library:
   source-dirs: src
@@ -35,4 +37,4 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
-    - type-sets
+    - cmptype-plugin

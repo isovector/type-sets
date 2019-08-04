@@ -30,7 +30,7 @@ plugin = defaultPlugin
 
 getCmpType :: TcPluginM TyCon
 getCmpType = do
-  md <- lookupModule (mkModuleName "CmpType") $ fsLit "type-sets"
+  md <- lookupModule (mkModuleName "CmpType") $ fsLit "cmptype-plugin"
   nm <- lookupName md $ mkTcOcc "CmpType"
   tcLookupTyCon nm
 
