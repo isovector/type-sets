@@ -1,41 +1,32 @@
 {-# LANGUAGE BangPatterns  #-}
 {-# LANGUAGE TupleSections #-}
+{-# OPTIONS_GHC -Wall #-}
 
-module Plugin where
+module Plugin (plugin) where
 
-import Class
-import Control.Monad
+import           Class
+import           Data.Function
+import           Data.Functor
+import           Data.Generics (everywhere, mkT)
+import           Data.IORef
+import           Data.List
+import           Data.Maybe
 import qualified Data.Set as S
-import Data.IORef
-import Data.Function
-import Data.Maybe
-import TcPluginM
-import TcType
-import TcEvidence
--- import TcSMonad
-import Data.Functor
-import Data.List
-import GHC.NameViolation
-import GhcPlugins
-import Plugins
-import TcRnTypes
-import GHC.TcPluginM.Extra (lookupModule, lookupName, evByFiat)
-import TcPluginM (TcPluginM, tcLookupClass, tcLookupTyCon)
-import Data.Generics (mkQ, everything, everywhere, mkT)
+import           GHC.NameViolation
+import           GHC.TcPluginM.Extra (lookupModule, lookupName, evByFiat)
+import           GhcPlugins
+import           TcEvidence
+import           TcPluginM
+import           TcPluginM (TcPluginM, tcLookupTyCon)
+import           TcRnTypes
+
 
 replaceCmpType :: TyCon -> Type -> Type
 replaceCmpType cmpType t =
   case splitTyConApp_maybe t of
-    Just (tc, [k, a, b]) | tc == cmpType -> doCompare $ CompareType k a b t undefined
+    Just (tc, [_, a, b]) | tc == cmpType -> doCompare a b
     _ -> t
 
-
--- TODO(sandy): this thing doesn't find cmptypes inside cmptypes :(
-findCmpType :: TyCon -> CtLoc -> Type -> [CompareType]
-findCmpType cmpType loc t =
-  case splitTyConApp_maybe t of
-    Just (tc, [k, a, b]) | tc == cmpType -> [CompareType k a b t loc]
-    _ -> []
 
 
 plugin :: Plugin
@@ -54,19 +45,8 @@ getCmpType = do
   nm <- lookupName md $ mkTcOcc "CmpType"
   tcLookupTyCon nm
 
-
-data CompareType = CompareType
-  { cmpTypeKind :: Kind
-  , cmpTypeA :: Type
-  , cmpTypeB :: Type
-  , cmpTypeType :: Type
-  , cmpTypeLoc :: CtLoc
-  }
-
-instance Outputable CompareType
-
-doCompare :: CompareType -> Type
-doCompare (CompareType _ a b _ _) = flip mkTyConApp [] $
+doCompare :: Type -> Type -> Type
+doCompare a b = flip mkTyConApp [] $
   case hash a `compare` hash b of
     LT -> promotedLTDataCon
     EQ -> promotedEQDataCon
@@ -84,16 +64,12 @@ hash t =
        in intercalate " " $ showName (violateName cName) : aNames
     Nothing ->
       case isNumLitTy t of
-        Just int -> "$$intLit:" ++ show int
+        Just i -> show i
         Nothing ->
           case isStrLitTy t of
-            Just str -> "$$strLit:" ++ unpackFS str
+            Just str -> unpackFS str
             Nothing -> error "unknown sort of thing"
 
-
-findRelevants :: TyCon -> CtLoc ->  Type -> [CompareType]
-findRelevants tyCon loc t =
-  everything (++) (mkQ [] (findCmpType tyCon loc)) t
 
 
 mkWanted' :: TyCon -> Ct -> TcPluginM (Maybe (OrdType, ((EvTerm, Ct), Ct)))
@@ -126,7 +102,7 @@ solve
     -> [Ct]  -- derived
     -> [Ct]  -- wanted
     -> TcPluginM TcPluginResult
-solve (cmpType, ref) _ _ [] = pure $ TcPluginOk [] []
+solve _ _ _ [] = pure $ TcPluginOk [] []
 solve (cmpType, ref) _ _ wanted = do
   -- pprTraceM "wanted" $ vcat $ fmap ppr $ wanted
   unifications <- catMaybes <$> traverse (mkWanted' cmpType) wanted
@@ -135,12 +111,7 @@ solve (cmpType, ref) _ _ wanted = do
   let unifications' = filter (not . flip S.member already_emitted . fst) unifications
   tcPluginIO $ modifyIORef ref $ S.union $ S.fromList $ fmap fst unifications'
 
-  -- let unifications' =
-
   -- pprTraceM "emitting" $ vcat $ fmap (ppr . snd . snd) unifications
-
-
-
   pure $ TcPluginOk (fmap (fst . snd) unifications') $ fmap (snd . snd) unifications'
 
 
@@ -155,32 +126,9 @@ instance Ord OrdType where
   compare = nonDetCmpType `on` getOrdType
 
 
-
---   zs <- pure $ concat $ fmap (\ct -> findRelevants cmpType (ctLoc ct) $ ctev_pred $ cc_ev ct) wanted
-
---   pprTraceM "emitting" $ vcat $ fmap ppr $ mapMaybe (\ct -> (, ct) <$> evMagic ct) unifications
-
-
---   pure $ TcPluginOk (mapMaybe (\ct -> (, ct) <$> evMagic ct) unifications) []
-
---   pprPanic "uh oh" $ ppr $ given ++ derivs ++ wanted
-
-  -- pure $ TcPluginOk
-  --         []
-  --         [ CFunEqCan
-  --             (error "ev")
-  --             cmpType
-  --             [mkNumLitTy 5, mkNumLitTy 5]
-  --             undefined
-  --         ]
-
-
-
--- isCmpType :: TyCon -> Ct -> Bool
-
-
 evMagic :: Ct -> Maybe EvTerm
-evMagic ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
+evMagic ct =
+  case classifyPredType $ ctEvPred $ ctEvidence ct of
     EqPred NomEq t1 t2 -> Just (evByFiat "type-sets" t1 t2)
     _                  -> Nothing
 
