@@ -3,7 +3,7 @@
 {-# LANGUAGE TupleSections #-}
 {-# OPTIONS_GHC -Wall      #-}
 
-module Plugin (plugin) where
+module Type.Compare.Plugin (plugin) where
 
 import Data.Function (on)
 import Data.Functor ((<&>))
@@ -30,7 +30,7 @@ plugin = defaultPlugin
 
 getCmpType :: TcPluginM TyCon
 getCmpType = do
-  md <- lookupModule (mkModuleName "CmpType") $ fsLit "cmptype-plugin"
+  md <- lookupModule (mkModuleName "Type.Compare") $ fsLit "cmptype-plugin"
   nm <- lookupName md $ mkTcOcc "CmpType"
   tcLookupTyCon nm
 

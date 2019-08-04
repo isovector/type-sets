@@ -6,7 +6,7 @@
 
 module Lib where
 
-import CmpType
+import Type.Compare
 import GHC.TypeLits
 
 data BST a

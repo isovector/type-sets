@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module CmpType where
+module Type.Compare where
 
 import GHC.TypeLits
 

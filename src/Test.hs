@@ -12,7 +12,7 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# OPTIONS_GHC -Wall              #-}
 
-{-# OPTIONS_GHC -fplugin=Plugin #-}
+{-# OPTIONS_GHC -fplugin=Type.Compare.Plugin #-}
 
 module Test where
 
