@@ -24,6 +24,7 @@ dependencies:
 - ghc
 - ghc-tcplugins-extra
 - syb
+- containers
 
 library:
   source-dirs: src

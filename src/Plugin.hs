@@ -1,20 +1,31 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns  #-}
+{-# LANGUAGE TupleSections #-}
 
 module Plugin where
 
+import qualified Data.Set as S
+import Data.IORef
+import Data.Function
+import Data.Maybe
 import TcPluginM
 import TcType
 import TcEvidence
-import TcSMonad
+-- import TcSMonad
 import Data.Functor
 import Data.List
 import GHC.NameViolation
 import GhcPlugins
 import Plugins
 import TcRnTypes
-import GHC.TcPluginM.Extra (lookupModule, lookupName)
+import GHC.TcPluginM.Extra (lookupModule, lookupName, evByFiat)
 import TcPluginM (TcPluginM, tcLookupClass, tcLookupTyCon)
-import Data.Generics (mkQ, everything)
+import Data.Generics (mkQ, everything, everywhere, mkT)
+
+replaceCmpType :: TyCon -> Type -> Type
+replaceCmpType cmpType t =
+  case splitTyConApp_maybe t of
+    Just (tc, [k, a, b]) | tc == cmpType -> doCompare $ CompareType k a b t undefined
+    _ -> t
 
 
 -- TODO(sandy): this thing doesn't find cmptypes inside cmptypes :(
@@ -28,7 +39,7 @@ findCmpType cmpType loc t =
 plugin :: Plugin
 plugin = defaultPlugin
   { tcPlugin = const $ Just $ TcPlugin
-      { tcPluginInit = getCmpType
+      { tcPluginInit = (,) <$> getCmpType <*> tcPluginIO (newIORef S.empty)
       , tcPluginSolve = solve
       , tcPluginStop = const $ pure ()
       }
@@ -83,37 +94,71 @@ findRelevants tyCon loc t =
   everything (++) (mkQ [] (findCmpType tyCon loc)) t
 
 
-mkWanted :: TyCon -> CompareType -> TcPluginM (Ct, Coercion)
-mkWanted cmpType cmp = do
-  (ev, c) <- unsafeTcPluginTcM
-             . runTcSDeriveds
-             $ newWantedEq
-                 (cmpTypeLoc cmp)
-                 Nominal
-                 (cmpTypeType cmp)
-                 (doCompare cmp)
-  -- uniq <- tcPluginIO $ fmap uniqFromSupply $ mkSplitUniqSupply 'z'
-  -- let var = mkTcTyVar (mkSystemName uniq $ mkVarOcc "hello") (cmpTypeKind cmp) vanillaSkolemTv
-  pure ( -- CFunEqCan ev cmpType [cmpTypeKind cmp, cmpTypeA cmp, cmpTypeB cmp] var
-         CNonCanonical ev
-       , c
-       )
+mkWanted' :: TyCon -> Ct -> TcPluginM (Maybe (OrdType, (Ct, Ct)))
+mkWanted' cmpType ct =
+  case classifyPredType $ ctEvPred $ ctEvidence ct of
+    EqPred NomEq t1 t2 -> fmap Just $ do
+      let t = everywhere (mkT $ replaceCmpType cmpType) t1
+      ct' <- CNonCanonical <$> newWanted (ctLoc ct) (mkPrimEqPredRole Nominal t t2)
+      pure (OrdType t, (ct, ct'))
 
+    _                  -> pure Nothing
+
+
+--   (ev, _) <- unsafeTcPluginTcM
+--              . runTcSDeriveds
+--              $ newWantedEq
+--                  (cmpTypeLoc cmp)
+--                  Nominal
+--                  (cmpTypeType cmp)
+--                  (doCompare cmp)
+--   -- uniq <- tcPluginIO $ fmap uniqFromSupply $ mkSplitUniqSupply 'z'
+--   -- let var = mkTcTyVar (mkSystemName uniq $ mkVarOcc "hello") (cmpTypeKind cmp) vanillaSkolemTv
+--   pure ( -- CFunEqCan ev cmpType [cmpTypeKind cmp, cmpTypeA cmp, cmpTypeB cmp] var
+--          CNonCanonical ev
+--        )
 
 solve
-    :: TyCon
+    :: (TyCon, IORef (S.Set OrdType))
     -> [Ct]  -- given
     -> [Ct]  -- derived
     -> [Ct]  -- wanted
     -> TcPluginM TcPluginResult
-solve cmpType given derivs wanted = do
-  zs <- pure $ concat $ fmap (\ct -> findRelevants cmpType (ctLoc ct) $ ctev_pred $ cc_ev ct) wanted
-  unifications <- traverse (mkWanted cmpType) zs
+solve (cmpType, ref) given derivs wanted = do
+  pprTraceM "wanted" $ vcat $ fmap ppr $ wanted
+  unifications <- catMaybes <$> traverse (mkWanted' cmpType) wanted
 
-  pprTraceM "emitting" $ vcat $ fmap (ppr . fst) unifications
+  already_emitted <- tcPluginIO $ readIORef ref
+  let unifications' = filter (not . flip S.member already_emitted . fst) unifications
+  tcPluginIO $ modifyIORef ref $ S.union $ S.fromList $ fmap fst unifications'
+
+  -- let unifications' =
+
+  pprTraceM "emitting" $ vcat $ fmap (ppr . snd . snd) unifications
 
 
-  pure $ TcPluginOk (fmap (\(ct, c) -> (evCoercion c, ct)) unifications) []
+
+  pure $ TcPluginOk (mapMaybe ((\c -> (, c) <$> evMagic c) . fst . snd) unifications') $ fmap (snd . snd) unifications'
+
+
+newtype OrdType = OrdType
+  { getOrdType :: Type
+  }
+
+instance Eq OrdType where
+  (==) = eqType `on` getOrdType
+
+instance Ord OrdType where
+  compare = nonDetCmpType `on` getOrdType
+
+
+
+--   zs <- pure $ concat $ fmap (\ct -> findRelevants cmpType (ctLoc ct) $ ctev_pred $ cc_ev ct) wanted
+
+--   pprTraceM "emitting" $ vcat $ fmap ppr $ mapMaybe (\ct -> (, ct) <$> evMagic ct) unifications
+
+
+--   pure $ TcPluginOk (mapMaybe (\ct -> (, ct) <$> evMagic ct) unifications) []
 
 --   pprPanic "uh oh" $ ppr $ given ++ derivs ++ wanted
 
@@ -130,4 +175,9 @@ solve cmpType given derivs wanted = do
 
 -- isCmpType :: TyCon -> Ct -> Bool
 
+
+evMagic :: Ct -> Maybe EvTerm
+evMagic ct = case classifyPredType $ ctEvPred $ ctEvidence ct of
+    EqPred NomEq t1 t2 -> Just (evByFiat "type-sets" t1 t2)
+    _                  -> Nothing
 
