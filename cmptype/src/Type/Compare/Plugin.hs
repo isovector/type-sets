@@ -31,7 +31,7 @@ plugin = defaultPlugin
 
 getCmpType :: TcPluginM TyCon
 getCmpType = do
-  md <- lookupModule (mkModuleName "Type.Compare") $ fsLit "cmptype-plugin"
+  md <- lookupModule (mkModuleName "Type.Compare") $ fsLit "cmptype"
   nm <- lookupName md $ mkTcOcc "CmpType"
   tcLookupTyCon nm
 
@@ -66,7 +66,7 @@ solve cmp_type _ _ wanted = do
   let rel = fmap (findRelevant cmp_type . ctLoc <*> ctev_pred . cc_ev) wanted
 
   gs <- for (concat rel) $ \(CompareType t res loc) -> do
-    let EvExpr ev = evByFiat "type-sets" t res
+    let EvExpr ev = evByFiat "cmptype-plugin" t res
     newGiven loc (mkPrimEqPred t res) ev
 
   pure $ TcPluginOk [] $ fmap CNonCanonical gs

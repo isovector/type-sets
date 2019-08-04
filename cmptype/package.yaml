@@ -1,4 +1,4 @@
-name:                cmptype-plugin
+name:                cmptype
 version:             0.1.0.0
 github:              "isovector/type-sets"
 license:             BSD3
@@ -30,7 +30,7 @@ library:
 
 tests:
   test:
-    main:                Spec.hs
+    main:                Main.hs
     source-dirs:         test
     ghc-options:
     - -threaded
@@ -38,4 +38,5 @@ tests:
     - -with-rtsopts=-N
     - -fplugin=Type.Compare.Plugin
     dependencies:
-    - cmptype-plugin
+    - cmptype
+    - should-not-typecheck
