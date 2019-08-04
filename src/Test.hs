@@ -47,42 +47,19 @@ data Variant (v :: BST *) = Variant
   }
 
 
-toVariant :: forall ds bst t. (Find bst t ~ ds, FromSides ds) => t -> Variant bst
+toVariant :: forall ds bst t. (Find t bst ~ ds, FromSides ds) => t -> Variant bst
 toVariant t = Variant (fromSides @ds) $ unsafeCoerce t
 
-fromVariant :: forall ds bst t. (Find bst t ~ ds, FromSides ds) => Variant bst -> Maybe t
+fromVariant :: forall ds bst t. (Find t bst ~ ds, FromSides ds) => Variant bst -> Maybe t
 fromVariant (Variant tag res) =
   if tag == fromSides @ds
      then Just $ unsafeCoerce res
      else Nothing
 
 
-foo :: Variant (Insert (Insert (Insert 'Empty Int) Bool) String)
+foo :: Variant (Insert String (Insert Bool (Insert Int 'Empty)))
 foo = toVariant True
 
 bar :: Maybe Bool
 bar = fromVariant foo
-
-
--- class Member bst t ~ 'True => ToVariant (t :: *) (bst :: BST *) where
---   toVariant :: t -> Variant bst
---   -- fromVariant :: Variant bst -> Either (Variant (Delete bst t)) t
-
-
-
-
--- instance {-# OVERLAPPING #-} ToVariant t ('Branch t lst rst) where
---   toVariant = Here
---   fromVariant (Here a) = Right a
---   fromVariant _ = error "impossible"
-
--- instance (ToVariant t lst) => ToVariant t ('Branch a lst rst) where
---   toVariant t = OnLeft $ toVariant t
-
--- instance (ToVariant t rst) => ToVariant t ('Branch a lst rst) where
---   toVariant t = OnRight $ toVariant t
-
-
--- foo :: Variant ('Branch String ('Branch Bool 'Empty 'Empty) 'Empty)
--- foo = OnLeft $ Here True
 
