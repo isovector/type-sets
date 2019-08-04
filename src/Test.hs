@@ -18,6 +18,6 @@ type family IsEQ (a :: Ordering) :: Bool where
   IsEQ 'EQ = 'True
   IsEQ _   = 'False
 
-zop :: Proxy 'LT
-zop = Proxy @(CmpType 3 4)
+zop :: Proxy 'True
+zop = Proxy @(IsEQ (CmpType 3 4))
 

@@ -3,6 +3,7 @@
 
 module Plugin where
 
+import Control.Monad
 import qualified Data.Set as S
 import Data.IORef
 import Data.Function
@@ -97,10 +98,13 @@ findRelevants tyCon loc t =
 mkWanted' :: TyCon -> Ct -> TcPluginM (Maybe (OrdType, (Ct, Ct)))
 mkWanted' cmpType ct =
   case classifyPredType $ ctEvPred $ ctEvidence ct of
-    EqPred NomEq t1 t2 -> fmap Just $ do
+    EqPred NomEq t1 t2 -> do
       let t = everywhere (mkT $ replaceCmpType cmpType) t1
-      ct' <- CNonCanonical <$> newWanted (ctLoc ct) (mkPrimEqPredRole Nominal t t2)
-      pure (OrdType t, (ct, ct'))
+      case t1 `eqType` t of
+        True -> pure Nothing
+        False -> do
+          ct' <- CNonCanonical <$> newWanted (ctLoc ct) (mkPrimEqPredRole Nominal t t2)
+          pure $ Just (OrdType t, (ct, ct'))
 
     _                  -> pure Nothing
 
