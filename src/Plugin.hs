@@ -3,6 +3,7 @@
 
 module Plugin where
 
+import Class
 import Control.Monad
 import qualified Data.Set as S
 import Data.IORef
@@ -95,7 +96,7 @@ findRelevants tyCon loc t =
   everything (++) (mkQ [] (findCmpType tyCon loc)) t
 
 
-mkWanted' :: TyCon -> Ct -> TcPluginM (Maybe (OrdType, (Ct, Ct)))
+mkWanted' :: TyCon -> Ct -> TcPluginM (Maybe (OrdType, ((EvTerm, Ct), Ct)))
 mkWanted' cmpType ct =
   case classifyPredType $ ctEvPred $ ctEvidence ct of
     EqPred NomEq t1 t2 -> do
@@ -103,24 +104,21 @@ mkWanted' cmpType ct =
       case t1 `eqType` t of
         True -> pure Nothing
         False -> do
+          let Just ev = evMagic ct
           ct' <- CNonCanonical <$> newWanted (ctLoc ct) (mkPrimEqPredRole Nominal t t2)
-          pure $ Just (OrdType t, (ct, ct'))
+          pure $ Just (OrdType t, ((ev, ct), ct'))
+
+    ClassPred cls ts -> do
+      let ts' = everywhere (mkT $ replaceCmpType cmpType) ts
+      case and $ zipWith eqType ts ts' of
+        True -> pure Nothing
+        False -> do
+          let t = mkTyConApp (classTyCon cls) ts'
+          ct' <- newWanted (ctLoc ct) t
+          pure $ Just (OrdType t, ((ctEvTerm $ ct', ct), CDictCan ct' cls ts' False))
 
     _                  -> pure Nothing
 
-
---   (ev, _) <- unsafeTcPluginTcM
---              . runTcSDeriveds
---              $ newWantedEq
---                  (cmpTypeLoc cmp)
---                  Nominal
---                  (cmpTypeType cmp)
---                  (doCompare cmp)
---   -- uniq <- tcPluginIO $ fmap uniqFromSupply $ mkSplitUniqSupply 'z'
---   -- let var = mkTcTyVar (mkSystemName uniq $ mkVarOcc "hello") (cmpTypeKind cmp) vanillaSkolemTv
---   pure ( -- CFunEqCan ev cmpType [cmpTypeKind cmp, cmpTypeA cmp, cmpTypeB cmp] var
---          CNonCanonical ev
---        )
 
 solve
     :: (TyCon, IORef (S.Set OrdType))
@@ -128,8 +126,9 @@ solve
     -> [Ct]  -- derived
     -> [Ct]  -- wanted
     -> TcPluginM TcPluginResult
-solve (cmpType, ref) given derivs wanted = do
-  pprTraceM "wanted" $ vcat $ fmap ppr $ wanted
+solve (cmpType, ref) _ _ [] = pure $ TcPluginOk [] []
+solve (cmpType, ref) _ _ wanted = do
+  -- pprTraceM "wanted" $ vcat $ fmap ppr $ wanted
   unifications <- catMaybes <$> traverse (mkWanted' cmpType) wanted
 
   already_emitted <- tcPluginIO $ readIORef ref
@@ -138,11 +137,11 @@ solve (cmpType, ref) given derivs wanted = do
 
   -- let unifications' =
 
-  pprTraceM "emitting" $ vcat $ fmap (ppr . snd . snd) unifications
+  -- pprTraceM "emitting" $ vcat $ fmap (ppr . snd . snd) unifications
 
 
 
-  pure $ TcPluginOk (mapMaybe ((\c -> (, c) <$> evMagic c) . fst . snd) unifications') $ fmap (snd . snd) unifications'
+  pure $ TcPluginOk (fmap (fst . snd) unifications') $ fmap (snd . snd) unifications'
 
 
 newtype OrdType = OrdType

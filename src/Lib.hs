@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE PolyKinds            #-}
 {-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Lib where
@@ -11,6 +12,9 @@ import GHC.TypeLits
 data BST a
   = Empty
   | Branch a (BST a) (BST a)
+
+data Side = L | R
+  deriving (Eq, Ord, Show)
 
 type family Insert (bst :: BST k) (t :: k) :: BST k where
   Insert 'Empty t = 'Branch t 'Empty 'Empty
@@ -52,4 +56,13 @@ type family DeleteImpl (ord :: Ordering) (t :: k) (a :: k) (lbst :: BST k) (rbst
 type family RightMost (bst :: BST k) :: k where
   RightMost ('Branch a lbst 'Empty) = a
   RightMost ('Branch a lbst rbst) = RightMost rbst
+
+
+type family Find (bst :: BST k) (t :: k) :: [Side] where
+  Member ('Branch a lbst rbst) t = FindImpl (CmpType t a) t lbst rbst
+
+type family FindImpl (ord :: Ordering) (t :: k) (lbst :: BST k) (rbst :: BST k) :: [Side] where
+  FindImpl 'EQ t lbst rbst = '[]
+  FindImpl 'LT t lbst rbst = 'L ': Find lbst t
+  FindImpl 'GT t lbst rbst = 'R ': Find rbst t
 
