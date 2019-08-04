@@ -12,7 +12,7 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# OPTIONS_GHC -Wall              #-}
 
-{-# OPTIONS_GHC -fplugin=Plugin -fconstraint-solver-iterations=10 #-}
+{-# OPTIONS_GHC -fplugin=Plugin #-}
 
 module Test where
 
@@ -60,7 +60,7 @@ fromVariant (Variant tag res) =
 foo :: Variant (Insert (Insert (Insert 'Empty Int) Bool) String)
 foo = toVariant True
 
-bar :: Maybe String
+bar :: Maybe Bool
 bar = fromVariant foo
 
 

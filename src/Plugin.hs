@@ -5,39 +5,27 @@
 
 module Plugin (plugin) where
 
-import           Class
-import           Data.Data (Data)
-import           Data.Function
-import           Data.Functor
-import           Data.Generics (everywhere, mkT)
-import           Data.IORef
-import           Data.List
-import           Data.Maybe
-import qualified Data.Set as S
-import           GHC.NameViolation
-import           GHC.TcPluginM.Extra (lookupModule, lookupName, evByFiat)
-import           GhcPlugins
-import           TcEvidence
-import           TcPluginM
-import           TcPluginM (TcPluginM, tcLookupTyCon)
-import           TcRnTypes
+import Data.Function (on)
+import Data.Functor ((<&>))
+import Data.Generics (everything, mkQ)
+import Data.List (intercalate)
+import Data.Traversable (for)
+import GHC.NameViolation (violateName, showName)
+import GHC.TcPluginM.Extra (lookupModule, lookupName, evByFiat)
+import GhcPlugins
+import TcEvidence (EvTerm (..))
+import TcPluginM (TcPluginM, tcLookupTyCon, newGiven)
+import TcRnTypes
 
 
 plugin :: Plugin
 plugin = defaultPlugin
   { tcPlugin = const $ Just $ TcPlugin
-      { tcPluginInit = (,) <$> getCmpType <*> tcPluginIO (newIORef S.empty)
+      { tcPluginInit = getCmpType
       , tcPluginSolve = solve
       , tcPluginStop = const $ pure ()
       }
   }
-
-
-replaceCmpType :: Data a => TyCon -> a -> a
-replaceCmpType cmp_type = everywhere $ mkT $ \t ->
-  case splitTyConApp_maybe t of
-    Just (tc, [_, a, b]) | tc == cmp_type -> doCompare a b
-    _ -> t
 
 
 getCmpType :: TcPluginM TyCon
@@ -76,67 +64,38 @@ hash t =
             Nothing -> error "unknown sort of thing"
 
 
-data RewrittenWanted = RewrittenWanted
-  { rwOrig :: OrdType
-  , rwSolved :: (EvTerm, Ct)
-  , rwNew :: Ct
-  }
-
-
-mkWanted' :: TyCon -> Ct -> TcPluginM (Maybe RewrittenWanted)
-mkWanted' cmp_type ct =
-  case classifyPredType $ ctEvPred $ ctEvidence ct of
-    EqPred NomEq t1 t2 -> do
-      let t = replaceCmpType cmp_type t1
-      case t1 `eqType` t of
-        True -> pure Nothing
-        False -> do
-          let ev = evByFiat "type-sets" t1 t2
-          ct' <- newWanted (ctLoc ct) (mkPrimEqPredRole Nominal t t2)
-          pure $ Just $ RewrittenWanted (OrdType t) (ev, ct) $ CNonCanonical ct'
-
-    ClassPred cls ts -> do
-      let ts' = replaceCmpType cmp_type ts
-      case and $ zipWith eqType ts ts' of
-        True -> pure Nothing
-        False -> do
-          let t = mkTyConApp (classTyCon cls) ts'
-          ct' <- newWanted (ctLoc ct) t
-          pure $ Just $ RewrittenWanted (OrdType t) (ctEvTerm $ ct', ct) $ CDictCan ct' cls ts' False
-
-    _                  -> pure Nothing
-
-
 solve
-    :: (TyCon, IORef (S.Set OrdType))
+    :: TyCon
     -> [Ct]  -- given
     -> [Ct]  -- derived
     -> [Ct]  -- wanted
     -> TcPluginM TcPluginResult
 solve _ _ _ [] = pure $ TcPluginOk [] []
-solve (cmp_type, ref) _ _ wanted = do
-  already_emitted <- tcPluginIO $ readIORef ref
+solve cmp_type _ _ wanted = do
+  let rel = fmap (findRelevant cmp_type . ctLoc <*> ctev_pred . cc_ev) wanted
 
-  rewritten <- catMaybes <$> traverse (mkWanted' cmp_type) wanted
-  let filtered = filter (not . flip S.member already_emitted . rwOrig) rewritten
-      solved = fmap rwSolved filtered
-      to_emit = fmap rwNew filtered
+  gs <- for (concat rel) $ \z -> do
+    let t = cmpTypeType z
+        res = doCompare (cmpTypeA z) (cmpTypeB z)
+        EvExpr ev = evByFiat "type-sets" t res
+    newGiven (cmpTypeLoc z) (mkPrimEqPred t res) ev
 
-  -- pprTraceM "wanted" $ vcat $ fmap ppr $ wanted
-  -- pprTraceM "emitting" $ vcat $ fmap ppr to_emit
-
-  tcPluginIO $ modifyIORef ref $ S.union $ S.fromList $ fmap rwOrig filtered
-  pure $ TcPluginOk solved to_emit
+  pure $ TcPluginOk [] $ fmap CNonCanonical gs
 
 
-newtype OrdType = OrdType
-  { getOrdType :: Type
+data CompareType = CompareType
+  { cmpTypeA :: Type
+  , cmpTypeB :: Type
+  , cmpTypeType :: Type
+  , cmpTypeLoc :: CtLoc
   }
 
-instance Eq OrdType where
-  (==) = eqType `on` getOrdType
 
-instance Ord OrdType where
-  compare = nonDetCmpType `on` getOrdType
-
+findRelevant :: TyCon -> CtLoc ->  Type -> [CompareType]
+findRelevant cmp_type loc = everything (++) $ mkQ [] findCmpType
+  where
+    findCmpType t =
+      case splitTyConApp_maybe t of
+        Just (tc, [_, a, b]) | tc == cmp_type -> [CompareType a b t loc]
+        _ -> []
 
