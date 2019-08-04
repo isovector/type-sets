@@ -19,6 +19,9 @@ import TcRnTypes
 import TcType (isTyFamFree)
 
 
+------------------------------------------------------------------------------
+-- | This plugin automagically solves 'Type.Compare.CmpType'. Enable the GHC
+-- flag @-fplugin=Type.Compare.Plugin@ in order to use it.
 plugin :: Plugin
 plugin = defaultPlugin
   { tcPlugin = const $ Just $ TcPlugin

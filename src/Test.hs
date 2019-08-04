@@ -16,7 +16,7 @@
 
 module Test where
 
-import Lib
+import Type.Set
 import GHC.Exts (Any)
 import Unsafe.Coerce
 
@@ -41,16 +41,16 @@ instance FromSides xs => FromSides ('R : xs) where
   fromSides = R : fromSides @xs
 
 
-data Variant (v :: BST *) = Variant
+data Variant (v :: TypeSet *) = Variant
   { vTag :: [Side]
   , vResult :: Any
   }
 
 
-toVariant :: forall ds bst t. (Find t bst ~ ds, FromSides ds) => t -> Variant bst
+toVariant :: forall ds bst t. (Locate t bst ~ ds, FromSides ds) => t -> Variant bst
 toVariant t = Variant (fromSides @ds) $ unsafeCoerce t
 
-fromVariant :: forall ds bst t. (Find t bst ~ ds, FromSides ds) => Variant bst -> Maybe t
+fromVariant :: forall ds bst t. (Locate t bst ~ ds, FromSides ds) => Variant bst -> Maybe t
 fromVariant (Variant tag res) =
   if tag == fromSides @ds
      then Just $ unsafeCoerce res

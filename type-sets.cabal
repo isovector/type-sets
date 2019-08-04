@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0d2fadc7d6783e0d61710692de5ca55282bea54e83135a90c4889db00c31bed8
+-- hash: 41f8c4b76de2fcd006e54502535a4ba3384691c4e3273b79d1eb3a7999f387f2
 
 name:           type-sets
 version:        0.1.0.0
@@ -29,8 +29,8 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
       Test
+      Type.Set
   other-modules:
       Paths_type_sets
   hs-source-dirs:
