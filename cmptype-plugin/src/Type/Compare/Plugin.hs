@@ -5,8 +5,8 @@
 
 module Type.Compare.Plugin (plugin) where
 
-import Data.Function (on)
-import Data.Functor ((<&>))
+import Control.Applicative (liftA2)
+import Control.Monad (guard)
 import Data.Generics (everything, mkQ)
 import Data.List (intercalate)
 import Data.Traversable (for)
@@ -16,6 +16,7 @@ import GhcPlugins
 import TcEvidence (EvTerm (..))
 import TcPluginM (TcPluginM, tcLookupTyCon, newGiven)
 import TcRnTypes
+import TcType (isTyFamFree)
 
 
 plugin :: Plugin
@@ -42,26 +43,16 @@ promoteOrdering = flip mkTyConApp [] . \case
    GT -> promotedGTDataCon
 
 
-doCompare :: Type -> Type -> Type
-doCompare a = promoteOrdering . on compare hash a
+doCompare :: Type -> Type -> Maybe Type
+doCompare a b = fmap promoteOrdering $ liftA2 compare (hash a) (hash b)
 
 
-hash :: Type -> String
-hash t =
-  case splitTyConApp_maybe t of
-    Just (c, as) ->
-      let cName = getName c
-          aNames = as <&> \a -> maybe (hash a)
-                                      (showName . violateName . getName)
-                              $ getTyVar_maybe a
-       in intercalate " " $ showName (violateName cName) : aNames
-    Nothing ->
-      case isNumLitTy t of
-        Just i -> show i
-        Nothing ->
-          case isStrLitTy t of
-            Just str -> unpackFS str
-            Nothing -> error "unknown sort of thing"
+hash :: Type -> Maybe String
+hash t = do
+  guard $ isTyFamFree t
+  (c, as) <- splitTyConApp_maybe t
+  hs <- traverse hash as
+  pure $ intercalate " " $ showName (violateName $ getName c) : hs
 
 
 solve
@@ -94,6 +85,6 @@ findRelevant cmp_type loc = everything (++) $ mkQ [] findCmpType
     findCmpType t =
       case splitTyConApp_maybe t of
         Just (tc, [_, a, b]) | tc == cmp_type ->
-          [CompareType t (doCompare a b) loc]
+           maybe [] (\res -> [CompareType t res loc]) $ doCompare a b
         _ -> []
 

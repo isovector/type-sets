@@ -1,6 +1,9 @@
 {-# LANGUAGE DataKinds      #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE PolyKinds      #-}
 {-# LANGUAGE TypeFamilies   #-}
+
+{-# OPTIONS_GHC -fplugin=Type.Compare.Plugin   #-}
 
 import           Data.Proxy
 import           GHC.TypeLits
@@ -77,6 +80,15 @@ data Int
 
 testType12 :: Proxy (IsEQ (CmpType Int P.Int)) -> Proxy 'False
 testType12 = id
+
+
+type family Stuck :: k
+
+-- testType13_WRONG :: Proxy (CmpType a b) -> Proxy 'True
+-- testType13_WRONG = id
+
+testType14_WRONG :: Proxy (CmpType Stuck Int) -> Proxy 'EQ
+testType14_WRONG = id
 
 
 main :: IO ()
