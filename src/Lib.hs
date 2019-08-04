@@ -5,16 +5,12 @@
 
 module Lib where
 
+import CmpType
 import GHC.TypeLits
 
 data BST a
   = Empty
   | Branch a (BST a) (BST a)
-
-
--- type family CmpType (a :: k) (b :: k) :: Ordering
-
-type CmpType a b = CmpNat a b
 
 type family Insert (bst :: BST k) (t :: k) :: BST k where
   Insert 'Empty t = 'Branch t 'Empty 'Empty
