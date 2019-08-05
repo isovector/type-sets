@@ -17,9 +17,9 @@ description:         Please see the README on GitHub at <https://github.com/isov
 
 dependencies:
 - base >= 4.7 && < 5
-- ghc
-- ghc-tcplugins-extra
-- syb
+- ghc >= 8.6.3 && < 8.8
+- ghc-tcplugins-extra ^>= 0.3
+- syb ^>= 0.7
 
 library:
   source-dirs: src
