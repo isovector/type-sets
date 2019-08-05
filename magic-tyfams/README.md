@@ -1,5 +1,7 @@
 # magic-tyfams
 
+[![Hackage](https://img.shields.io/hackage/v/magic-tyfams.svg?logo=haskell&label=magic-tyfams)](https://hackage.haskell.org/package/magic-tyfams)
+
 ## Dedication
 
 > G.O.B.: Two drowned white doves from "Flowers to Doves," a rabbit from "Doves
