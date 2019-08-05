@@ -17,8 +17,8 @@ description:         Please see the README on GitHub at <https://github.com/isov
 
 dependencies:
 - base >= 4.7 && < 5
-- ghc
-- magic-tyfams
+- ghc >= 8.6.3 && < 8.8
+- magic-tyfams ^>= 0.1.0.0
 
 library:
   source-dirs: src

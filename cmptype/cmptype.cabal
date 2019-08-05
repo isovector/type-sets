@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: dc455f072dfad857979e7de869f611a19a10e7f8fb1755c2236e0ab91e0e6a28
+-- hash: 300153a3a41ac95456811b47db56af95bb6c5893037b095bc24676c319955916
 
 name:           cmptype
 version:        0.1.0.0
@@ -38,8 +38,8 @@ library
       src
   build-depends:
       base >=4.7 && <5
-    , ghc
-    , magic-tyfams
+    , ghc >=8.6.3 && <8.8
+    , magic-tyfams >=0.1.0.0 && <0.2
   default-language: Haskell2010
 
 test-suite test
@@ -55,7 +55,7 @@ test-suite test
   build-depends:
       base >=4.7 && <5
     , cmptype
-    , ghc
-    , magic-tyfams
+    , ghc >=8.6.3 && <8.8
+    , magic-tyfams >=0.1.0.0 && <0.2
     , should-not-typecheck
   default-language: Haskell2010
