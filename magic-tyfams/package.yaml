@@ -1,4 +1,4 @@
-name:                cmptype
+name:                magic-tyfams
 version:             0.1.0.0
 github:              "https://github.com/isovector/type-sets/tree/master/cmptype"
 license:             BSD3
@@ -10,29 +10,17 @@ extra-source-files:
 - README.md
 - ChangeLog.md
 
-synopsis:            Compare types of any kinds
-category:            Type
+synopsis:            Write plugins for magic type families with ease
+category:            Compiler Plugin
 
 description:         Please see the README on GitHub at <https://github.com/isovector/type-sets/tree/master/cmptype#readme>
 
 dependencies:
 - base >= 4.7 && < 5
 - ghc
-- magic-tyfams
+- ghc-tcplugins-extra
+- syb
 
 library:
   source-dirs: src
-
-tests:
-  test:
-    main:                Main.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -fplugin=Type.Compare.Plugin
-    dependencies:
-    - cmptype
-    - should-not-typecheck
 
