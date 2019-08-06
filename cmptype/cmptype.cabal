@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 300153a3a41ac95456811b47db56af95bb6c5893037b095bc24676c319955916
+-- hash: 961cf4bb432f401123d81aa11c22e60aaab80702b2adb69c1bd87dcf6d8881c9
 
 name:           cmptype
 version:        0.1.0.0
@@ -29,11 +29,10 @@ source-repository head
 
 library
   exposed-modules:
-      GHC.NameViolation
       Type.Compare
       Type.Compare.Plugin
   other-modules:
-      Paths_cmptype
+      GHC.NameViolation
   hs-source-dirs:
       src
   build-depends:

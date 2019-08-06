@@ -22,6 +22,8 @@ dependencies:
 
 library:
   source-dirs: src
+  other-modules:
+    - GHC.NameViolation
 
 tests:
   test:
