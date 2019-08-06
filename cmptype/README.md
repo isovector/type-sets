@@ -1,5 +1,7 @@
 # cmptype
 
+[![Hackage](https://img.shields.io/hackage/v/cmptype.svg?logo=haskell&label=cmptype)](https://hackage.haskell.org/package/cmptype)
+
 ## Dedication
 
 > Comparison is an act of violence against the self.
