@@ -12,6 +12,7 @@ module Type.Set
   , Remove
   , Merge
   , Locate
+  , Follow
   ) where
 
 import Type.Compare
@@ -100,7 +101,7 @@ type family RightMost (bst :: TypeSet k) :: k where
 -- |
 type family Locate (t :: k) (bst :: TypeSet k) :: [Side] where
   Member t ('Branch a lbst rbst) = LocateImpl (CmpType t a) t lbst rbst
-  Member t 'Empty = TypeError ('Text "Unable to find" ':<>: 'ShowType t)
+  Member t 'Empty = TypeError ('Text "Unable to locate: " ':<>: 'ShowType t)
 
 type family LocateImpl (ord :: Ordering)
                        (t :: k)
@@ -109,4 +110,11 @@ type family LocateImpl (ord :: Ordering)
   LocateImpl 'EQ t lbst rbst = '[]
   LocateImpl 'LT t lbst rbst = 'L ': Locate t lbst
   LocateImpl 'GT t lbst rbst = 'R ': Locate t rbst
+
+
+type family Follow (ss :: [Side]) (bst :: TypeSet k) where
+  Follow '[] ('Branch t _ _) = t
+  Follow ('L ': ss) ('Branch _ l _) = Follow ss l
+  Follow ('R ': ss) ('Branch _ _ r) = Follow ss r
+  Follow ss 'Empty = TypeError ('Text "Unable to follow: " ':<>: 'ShowType ss)
 
