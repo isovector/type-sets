@@ -19,7 +19,9 @@ type family CmpType (a :: k) (b :: k) :: Ordering
 
 When you turn on the `-fplugin=Type.Compare.Plugin` flag, it will let you
 compare arbitrary types. Why would you want such a thing? Probably because you
-want to write a type-level container that isn't a fucking list!
+want to write a [type-level container that isn't a fucking list][type-sets]!
+
+[type-sets]: https://github.com/isovector/type-sets
 
 
 ## Acknowledgments
