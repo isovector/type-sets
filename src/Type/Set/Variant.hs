@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -15,10 +16,14 @@
 
 {-# OPTIONS_GHC -fplugin=Type.Compare.Plugin #-}
 
-module Test where
+module Type.Set.Variant where
+  -- ( Variant (..)
+  -- , Has (..)
+  -- ) where
 
 import Data.Type.Equality
 import Type.Set
+import Unsafe.Coerce
 
 data SSide (ss :: [Side]) where
   SNil :: SSide '[]
@@ -73,6 +78,16 @@ instance TestEquality SSide where
   testEquality SNil   (SR _) = Nothing
   testEquality (SR _) (SL _) = Nothing
   testEquality (SL _) (SR _) = Nothing
+
+
+proveFollowInsert :: Follow ss (Insert t bst) :~: Follow ss bst
+proveFollowInsert = unsafeCoerce Refl
+
+
+weaken :: forall t bst. Variant bst -> Variant (Insert t bst)
+weaken (Variant (tag :: SSide ss) res) = Variant tag $
+  case proveFollowInsert @ss @t @bst of
+    Refl -> res
 
 
 foo :: Variant (Insert String (Insert Bool (Insert Int 'Empty)))
