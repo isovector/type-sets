@@ -18,7 +18,7 @@
 
 ## Overview
 
-`magic-tyfams` writes the annoying parts of GHC plugins do you don't have to. It
+`magic-tyfams` writes the annoying parts of GHC plugins so you don't have to. It
 provides a convenient interface for implementing magical type families.
 
 For example, consider the following definition in `mypackage` of an always-stuck
