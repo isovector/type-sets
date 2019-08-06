@@ -1,4 +1,3 @@
-{-# LANGUAGE AllowAmbiguousTypes   #-}
 {-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -6,13 +5,12 @@
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE PolyKinds             #-}
-{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE RoleAnnotations       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-# OPTIONS_GHC -Wall              #-}
 
 {-# OPTIONS_GHC -fplugin=Type.Compare.Plugin #-}
@@ -45,17 +43,18 @@ data Variant (v :: TypeSet *) where
 type role Variant nominal
 
 
-type Has t bst proof = (Locate t bst ~ proof, Follow proof bst ~ t, FromSides proof)
+class Has t bst where
+  toVariant :: t -> Variant bst
+  fromVariant :: Variant bst -> Maybe t
 
-
-toVariant :: forall t bst proof. (Has t bst proof) => t -> Variant bst
-toVariant t = Variant (fromSides @proof) t
-
-fromVariant :: forall t bst proof. (Has t bst proof) => Variant bst -> Maybe t
-fromVariant (Variant tag res) =
-  case testEquality tag (fromSides @proof) of
-    Just Refl -> Just res
-    Nothing -> Nothing
+instance ( Follow (Locate t bst) bst ~ t
+         , FromSides (Locate t bst)
+         ) => Has t bst where
+  toVariant = Variant (fromSides @(Locate t bst))
+  fromVariant (Variant tag res) =
+    case testEquality tag (fromSides @(Locate t bst)) of
+      Just Refl -> Just res
+      Nothing -> Nothing
 
 
 instance TestEquality SSide where
