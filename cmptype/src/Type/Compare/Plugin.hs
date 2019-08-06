@@ -18,7 +18,7 @@ import GhcPlugins
 -- flag @-fplugin=Type.Compare.Plugin@ in order to use it.
 plugin :: Plugin
 plugin = magicTyFamPlugin "cmptype" "Type.Compare" "CmpType" $ \[_, a, b] ->
-    fmap promoteOrdering $ liftA2 compare (hash a) (hash b)
+  fmap promoteOrdering $ liftA2 compare (hash a) (hash b)
 
 
 promoteOrdering :: Ordering -> Type

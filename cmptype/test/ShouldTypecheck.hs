@@ -82,3 +82,19 @@ data Int
 testType12 :: Proxy (IsEQ (CmpType Int P.Int)) -> Proxy 'False
 testType12 = id
 
+testType13 :: Proxy (IsEQ (CmpType '[Int] '[P.Int])) -> Proxy 'False
+testType13 = id
+
+testType14 :: Proxy (CmpType '(Int, Int) '(Int, Bool)) -> Proxy 'GT
+testType14 = id
+
+testType15 :: Proxy (CmpType '[Int, Bool] '[Int, Bool]) -> Proxy 'EQ
+testType15 = id
+
+testType16 :: Proxy (CmpType '[Int, Int] '[Int, Bool]) -> Proxy 'GT
+testType16 = id
+
+-- NOTE(sandy): I don't really understand why this one is so...
+testType17 :: Proxy (CmpType '[Int, Bool] '[]) -> Proxy 'LT
+testType17 = id
+
