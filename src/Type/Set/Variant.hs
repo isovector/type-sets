@@ -16,10 +16,14 @@
 
 {-# OPTIONS_GHC -fplugin=Type.Compare.Plugin #-}
 
-module Type.Set.Variant where
-  -- ( Variant (..)
-  -- , Has (..)
-  -- ) where
+module Type.Set.Variant
+  ( Variant (..)
+  , Has (..)
+  , proveFollowInsert
+  , weaken
+  , Split (..)
+  , decompRoot
+  ) where
 
 import Data.Type.Equality
 import Type.Set
@@ -90,9 +94,14 @@ weaken (Variant (tag :: SSide ss) res) = Variant tag $
     Refl -> res
 
 
-foo :: Variant (Insert String (Insert Bool (Insert Int 'Empty)))
-foo = toVariant True
+data Split t lbst rbst
+  = Root t
+  | LSplit (Variant lbst)
+  | RSplit (Variant rbst)
 
-bar :: Maybe Bool
-bar = fromVariant foo
+
+decompRoot :: Variant ('Branch t lbst rbst) -> Split t lbst rbst
+decompRoot (Variant SNil t) = Root t
+decompRoot (Variant (SL s) t) = LSplit (Variant s t)
+decompRoot (Variant (SR s) t) = RSplit (Variant s t)
 
