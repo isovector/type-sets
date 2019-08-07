@@ -31,7 +31,7 @@ test1 :: Proxy (Member Bool MySet) -> Proxy 'True
 test1 = id  -- Bool is a member :)
 
 test2 :: Proxy (Member Char MySet) -> Proxy 'False
-test2 = id  -- False is not a member :(
+test2 = id  -- Char is not a member :(
 ```
 
 See the `Type.Set` module for more operations.
