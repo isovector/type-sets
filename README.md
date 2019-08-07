@@ -1,7 +1,7 @@
 # type-sets
 
 [![Build Status](https://api.travis-ci.org/isovector/type-sets.svg?branch=master)](https://travis-ci.org/isovector/type-sets)
-[![Hackage](https://img.shields.io/hackage/v/cmptype.svg?logo=haskell&label=cmptype)](https://hackage.haskell.org/package/cmptype)
+[![Hackage](https://img.shields.io/hackage/v/type-sets.svg?logo=haskell&label=type-sets)](https://hackage.haskell.org/package/type-sets)
 
 
 ## Dedication
