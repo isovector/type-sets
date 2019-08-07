@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: e1b2ac16f5e9b1a093d84bb270c518375d731def7109a32c13456b688c03d4f1
+-- hash: 2dfc658ae69265b2c9624dc6348cb97250e213c293af25c93fa9d71e85823b5b
 
 name:           magic-tyfams
-version:        0.1.0.1
+version:        0.1.0.2
 synopsis:       Write plugins for magic type families with ease
 description:    Please see the README on GitHub at <https://github.com/isovector/type-sets/tree/master/magic-tyfams#readme>
 category:       Compiler Plugin

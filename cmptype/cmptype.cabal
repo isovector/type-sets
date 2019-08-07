@@ -4,15 +4,15 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 961cf4bb432f401123d81aa11c22e60aaab80702b2adb69c1bd87dcf6d8881c9
+-- hash: 3b4e66bcfdf70bc5d83e2a5accad1ca013b0205b5677de6a796ed6a3983bec67
 
 name:           cmptype
-version:        0.1.0.0
+version:        0.1.0.1
 synopsis:       Compare types of any kinds
 description:    Please see the README on GitHub at <https://github.com/isovector/type-sets/tree/master/cmptype#readme>
 category:       Type
-homepage:       https://github.com/https://github.com/isovector/type-sets/tree/master/cmptype#readme
-bug-reports:    https://github.com/https://github.com/isovector/type-sets/tree/master/cmptype/issues
+homepage:       https://github.com/isovector/type-sets#readme
+bug-reports:    https://github.com/isovector/type-sets/issues
 author:         Sandy Maguire
 maintainer:     sandy@sandymaguire.me
 copyright:      2019 Sandy Maguire
@@ -25,7 +25,8 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/https://github.com/isovector/type-sets/tree/master/cmptype
+  location: https://github.com/isovector/type-sets
+  subdir: cmptype
 
 library
   exposed-modules:

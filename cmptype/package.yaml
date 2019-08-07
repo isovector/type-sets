@@ -1,6 +1,6 @@
 name:                cmptype
-version:             0.1.0.0
-github:              "https://github.com/isovector/type-sets/tree/master/cmptype"
+version:             0.1.0.1
+github:              "isovector/type-sets/cmptype"
 license:             BSD3
 author:              "Sandy Maguire"
 maintainer:          "sandy@sandymaguire.me"
