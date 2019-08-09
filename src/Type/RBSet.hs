@@ -6,6 +6,11 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances     #-}
 
+-- | See <https://www.cs.kent.ac.uk/people/staff/smk/redblack/rb.html here> for
+-- the original term-level code by Stefan Kahrs. It is also copied at the end
+-- of this file.  Some parts of the type-level code include the corresponding
+-- term-level parts in their comments.
+
 module Type.RBSet
   ( -- * Core type
     TypeSet (..)
