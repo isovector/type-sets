@@ -14,11 +14,14 @@
 module Type.RBSet
   ( -- * Core type
     TypeSet (..)
-
+  , Empty
     -- * Set operations
---  , Member
-  , Insertable(..)
-  , Removable(..)
+  , Member
+  , Insertable(Insert)
+  , InsertAll
+  , FromList
+  , Removable(Remove)
+  , Merge
   ) where
 
 import Type.Compare
@@ -207,6 +210,34 @@ instance BalanceableHelper BalanceRR a k1(N R b k2 (N R c k3 d)) where
 instance BalanceableHelper DoNotBalance a k b where
     type Balance'          DoNotBalance a k b = N B a k b 
 
+
+--- Member
+---
+---
+------------------------------------------------------------------------------
+-- | /O(log n)/. Determine membership in the 'TypeSet.'
+type family Member (t :: k) (bst :: TypeSet k)  :: Bool where
+  Member t 'E = 'False
+  Member t ('N _ lbst a rbst) = MemberImpl (CmpType t a) t lbst rbst
+
+type family MemberImpl (ord :: Ordering)
+                       (t :: k)
+                       (lbst :: TypeSet k)
+                       (rbst :: TypeSet k) :: Bool where
+  MemberImpl 'EQ t lbst rbst = 'True
+  MemberImpl 'LT t lbst rbst = Member t lbst
+  MemberImpl 'GT t lbst rbst = Member t rbst
+
+------------------------------------------------------------------------------
+-- | /O(m log n)/ for @Merge m n@; put your smaller set on the left side. Merge
+-- two 'TypeSet's together.
+type family Merge (small :: TypeSet k) (big :: TypeSet k) :: TypeSet k where
+  Merge Empty big   = big
+  Merge small Empty = small
+  Merge ('N _ lbst a rbst) big = Merge rbst (Merge lbst (Insert a big))
+
+
+--
 --
 --
 -- deletion
