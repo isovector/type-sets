@@ -32,12 +32,12 @@ data Color = R
            | B
     deriving (Show,Eq)
 
--- | A Red-Black tree. It will be used as a kind, to index the 'Record' and 'Variant' types.
+-- | A Red-Black tree. 
 data TypeSet a = E 
                | N Color (TypeSet a) a (TypeSet a)
     deriving (Show,Eq)
 
--- | A map without entries. See also 'unit' and 'impossible'.
+-- | A map without entries. 
 type Empty = E
 
 --
@@ -54,18 +54,8 @@ type family InsertAll (es :: [k]) (t :: TypeSet k) :: TypeSet k where
 -}
 type FromList (es :: [k]) = InsertAll es Empty
 
-{- | Class that determines if the pair of a 'Symbol' key and a 'Type' can
-     be inserted into a type-level map.
- 
-     The associated type family 'Insert' produces the resulting map.
+{- | The associated type family 'Insert' produces the resulting map.
 
-     At the term level, this manifests in 'insert', which adds a new field to a
-     record, and in 'widen', which lets you use a 'Variant' in a bigger context
-     than the one in which is was defined. 'insert' tends to be more useful in
-     practice.
-
-     If the map already has the key but with a /different/ 'Type', the
-     insertion fails to compile.
  -}
 class Insertable (k :: ki) (t :: TypeSet ki) where
     type Insert k t :: TypeSet ki
@@ -494,19 +484,8 @@ instance Fuseable left right => DelableHelper EQ k left k right where
 instance DelableR k left kx right => DelableHelper LT k left kx right where
     type Del'                                      LT k left kx right = DelR k left kx right
 
-{- | Class that determines if the pair of a 'Symbol' key and a 'Type' can
-     be deleted from a type-level map.
- 
-     The associated type family 'Remove' produces the resulting map.
+{- | The associated type family 'Remove' produces the resulting map.
 
-     At the term level, this manifests in 'delete', which removes a field from
-     a record, and in 'winnow', which checks if a 'Variant' is of a given
-     branch and returns the value in the branch if there's a match, or a
-     reduced 'Variant' if there isn't. 'winnow' tends to be more useful in
-     practice.
-
-     If the map already has the key but with a /different/ 'Type', the deletion
-     fails to compile.
  -}
 class Removable (k :: ki) (t :: TypeSet ki) where
     type Remove k t :: TypeSet ki
