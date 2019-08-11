@@ -17,7 +17,7 @@ description:         Please see the README on GitHub at <https://github.com/isov
 
 dependencies:
 - base >= 4.7 && < 5
-- cmptype ^>= 0.1.0.0
+- cmptype >= 0.1.0.0 && <= 0.3.0.0
 
 library:
   source-dirs: src
