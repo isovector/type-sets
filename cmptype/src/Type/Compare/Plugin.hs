@@ -17,7 +17,7 @@ import GhcPlugins
 -- | This plugin automagically solves 'Type.Compare.CmpType'. Enable the GHC
 -- flag @-fplugin=Type.Compare.Plugin@ in order to use it.
 plugin :: Plugin
-plugin = magicTyFamPlugin "cmptype" "Type.Compare" "CmpType" $ \[_, a, b] ->
+plugin = magicTyFamPlugin "cmptype" "Type.Compare" "CmpTypeImpl" $ \[_, a, b] ->
   fmap promoteOrdering $ liftA2 compare (hash a) (hash b)
 
 

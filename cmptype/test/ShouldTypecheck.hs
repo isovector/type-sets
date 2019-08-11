@@ -2,7 +2,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeFamilies   #-}
 
-{-# OPTIONS_GHC -fplugin=Type.Compare.Plugin   #-}
+{-# OPTIONS_GHC -fplugin=Type.Compare.Plugin #-}
 
 module ShouldTypecheck where
 
@@ -97,4 +97,24 @@ testType16 = id
 -- NOTE(sandy): I don't really understand why this one is so...
 testType17 :: Proxy (CmpType '[Int, Bool] '[]) -> Proxy 'LT
 testType17 = id
+
+testType18 :: Proxy (CmpType '(String, Bool, '(Int, Bool, String), Int)
+                             '(String, Bool, '(Int, Char, String), Int)) -> Proxy 'LT
+testType18 = id
+
+testType19 :: Proxy (CmpType '(String, Bool, '(Int, Char, String), Int)
+                             '(String, Bool, '(Int, Bool, String), Int)) -> Proxy 'GT
+testType19 = id
+
+testType20 :: Proxy (CmpType '(String, Bool, '(Int, Char, String), Int)
+                             '(String, Bool, '(Int, Char, String), Int)) -> Proxy 'EQ
+testType20 = id
+
+testType21 :: Proxy (CmpType '(String, Bool, '(Int, "a", String), Int)
+                             '(String, Bool, '(Int, "b", String), Int)) -> Proxy 'LT
+testType21 = id
+
+testType22 :: Proxy (CmpType '(String, Bool, '(Int, "b", String), Int)
+                             '(String, Bool, '(Int, "b", String), Int)) -> Proxy 'EQ
+testType22 = id
 

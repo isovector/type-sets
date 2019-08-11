@@ -1,5 +1,5 @@
 name:                cmptype
-version:             0.1.0.1
+version:             0.2.0.0
 github:              "isovector/type-sets/cmptype"
 license:             BSD3
 author:              "Sandy Maguire"
@@ -18,7 +18,7 @@ description:         Please see the README on GitHub at <https://github.com/isov
 dependencies:
 - base >= 4.7 && < 5
 - ghc >= 8.6.3 && < 8.8
-- magic-tyfams ^>= 0.1.0.0
+- magic-tyfams ^>= 0.1.1.0
 
 library:
   source-dirs: src

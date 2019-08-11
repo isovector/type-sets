@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3b4e66bcfdf70bc5d83e2a5accad1ca013b0205b5677de6a796ed6a3983bec67
+-- hash: 1ca86ccc0566be6d8def938f6085c7c5062daa481324ac214e19456e67d4b211
 
 name:           cmptype
-version:        0.1.0.1
+version:        0.2.0.0
 synopsis:       Compare types of any kinds
 description:    Please see the README on GitHub at <https://github.com/isovector/type-sets/tree/master/cmptype#readme>
 category:       Type
@@ -39,7 +39,7 @@ library
   build-depends:
       base >=4.7 && <5
     , ghc >=8.6.3 && <8.8
-    , magic-tyfams >=0.1.0.0 && <0.2
+    , magic-tyfams >=0.1.1.0 && <0.2
   default-language: Haskell2010
 
 test-suite test
@@ -56,6 +56,6 @@ test-suite test
       base >=4.7 && <5
     , cmptype
     , ghc >=8.6.3 && <8.8
-    , magic-tyfams >=0.1.0.0 && <0.2
+    , magic-tyfams >=0.1.1.0 && <0.2
     , should-not-typecheck
   default-language: Haskell2010

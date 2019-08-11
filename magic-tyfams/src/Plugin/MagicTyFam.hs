@@ -1,6 +1,8 @@
 {-# LANGUAGE BangPatterns  #-}
 {-# LANGUAGE LambdaCase    #-}
+{-# LANGUAGE PolyKinds     #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeFamilies  #-}
 {-# OPTIONS_GHC -Wall      #-}
 
 module Plugin.MagicTyFam
@@ -13,6 +15,9 @@ module Plugin.MagicTyFam
     -- * Low level stuff
   , solveWanteds
   , loadTyCon
+
+    -- * Error messages
+  , WhenStuck
 
     -- * Re-exports
   , Plugin
@@ -110,4 +115,67 @@ data MagicTyFamResult = MagicTyFamResult
   , _mtfrOriginal :: Type
   , _mtfrSolved   :: Type
   }
+
+
+------------------------------------------------------------------------------
+-- | Type family for observing stuckness of a constraint. This can be used to
+-- construct error messages helpfully pointing out that your plugin isn't
+-- enabled. For example:
+--
+-- @
+-- type family MyMagicFam a b c where
+--   MyMagicFam a b c =
+--     'WhenStuck' (MyMagicFamImpl a b c)
+--               ('GHC.TypeLits.TypeError' (''GHC.TypeLits.Text' "The plugin isn't enabled!"))
+--
+-- type family MyMagicFam a b c where
+-- @
+--
+-- and now solve @MyMagicFamImpl@ via 'magicTyFamPlugin'. The error message
+-- will only appear when @MyMagicFamImpl@ is stuck, which is to say, if your
+-- plugin isn't enabled.
+type family WhenStuck (expr :: k) (b :: k) :: k where
+  -- The type pattern @_ Foo@ is interpretered by the compiler as being of
+  -- any kind. This is great and exactly what we want here, except that things
+  -- like @forall s. Maybe s@ will get stuck on it.
+  --
+  -- So instead, we just propagate out 100 of these type variables and assume
+  -- that 100 type variables ought to be enough for anyone.
+  WhenStuck (_ AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind AnythingOfAnyKind AnythingOfAnyKind
+               AnythingOfAnyKind) b = b
+  WhenStuck a                     b = a
+
+data AnythingOfAnyKind
 
