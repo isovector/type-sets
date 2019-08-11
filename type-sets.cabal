@@ -30,6 +30,7 @@ source-repository head
 library
   exposed-modules:
       Type.Set
+      Type.RBSet
       Type.Set.Variant
   other-modules:
       Paths_type_sets
