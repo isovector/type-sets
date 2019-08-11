@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c2ca2c047c8206e0b264a033e8687fe01bab8d0b7e3ff9fed304cf76529d66b7
+-- hash: b462ce7243b616ca6d6a73fd65f8ead37c671611e51cbcd0c759f4cf55154214
 
 name:           type-sets
-version:        0.1.0.0
+version:        0.1.1.0
 synopsis:       Type-level sets
 description:    Please see the README on GitHub at <https://github.com/isovector/type-sets#readme>
 category:       Type
@@ -29,8 +29,8 @@ source-repository head
 
 library
   exposed-modules:
-      Type.Set
       Type.RBSet
+      Type.Set
       Type.Set.Variant
   other-modules:
       Paths_type_sets

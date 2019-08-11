@@ -7,10 +7,9 @@
 {-# LANGUAGE FlexibleInstances     #-}
 
 -- | See <https://www.cs.kent.ac.uk/people/staff/smk/redblack/rb.html here> for
--- the original term-level code by Stefan Kahrs. It is also copied at the end
--- of this file.  Some parts of the type-level code include the corresponding
--- term-level parts in their comments.
-
+-- the original term-level code by Stefan Kahrs.
+--
+-- @since 0.1.1.0
 module Type.RBSet
   ( -- * Core type
     TypeSet (..)
@@ -32,25 +31,27 @@ data Color = R
            | B
     deriving (Show,Eq)
 
--- | A Red-Black tree. 
-data TypeSet a = E 
+-- | A Red-Black tree.
+--
+-- @since 0.1.1.0
+data TypeSet a = E
                | N Color (TypeSet a) a (TypeSet a)
     deriving (Show,Eq)
 
--- | A map without entries. 
+-- | A map without entries.
 type Empty = E
 
 --
 --
 -- Insertion
 
-{- | Insert a list of type level key / value pairs into a type-level map. 
+{- | Insert a list of type level key / value pairs into a type-level map.
 -}
 type family InsertAll (es :: [k]) (t :: TypeSet k) :: TypeSet k where
     InsertAll '[] t = t
     InsertAll ( v ': es ) t = Insert v (InsertAll es t)
 
-{- | Build a type-level map out of a list of type level key / value pairs. 
+{- | Build a type-level map out of a list of type level key / value pairs.
 -}
 type FromList (es :: [k]) = InsertAll es Empty
 
@@ -76,33 +77,33 @@ instance CanMakeBlack (N color left k right) where
 instance CanMakeBlack E where
     type MakeBlack E = E
 
-class InsertableHelper1 (k :: ki) 
+class InsertableHelper1 (k :: ki)
                         (t :: TypeSet ki) where
     type Insert1 k t :: TypeSet ki
 
 instance InsertableHelper1 k E where
     type Insert1 k E = N R E k E
- 
-instance (CmpType k k' ~ ordering, 
+
+instance (CmpType k k' ~ ordering,
           InsertableHelper2 ordering k color left k' right
          )
          => InsertableHelper1 k (N color left k' right) where
-    -- FIXME possible duplicate work with CmpType: both in constraint and in associated type family. 
+    -- FIXME possible duplicate work with CmpType: both in constraint and in associated type family.
     -- Is that bad? How to avoid it?
-    type Insert1 k (N color left k' right) = Insert2 (CmpType k k') k color left k' right  
+    type Insert1 k (N color left k' right) = Insert2 (CmpType k k') k color left k' right
 
-class InsertableHelper2 (ordering :: Ordering) 
-                        (k :: ki) 
-                        (color :: Color) 
-                        (left :: TypeSet ki) 
-                        (k' :: ki) 
+class InsertableHelper2 (ordering :: Ordering)
+                        (k :: ki)
+                        (color :: Color)
+                        (left :: TypeSet ki)
+                        (k' :: ki)
                         (right :: TypeSet ki) where
     type Insert2 ordering k color left k' right :: TypeSet ki
 
 --  ins s@(T B a y b)
 --      | x<y = balance (ins a) y b
 instance (InsertableHelper1 k left, Insert1 k left ~ inserted,
-          Balanceable inserted k' right 
+          Balanceable inserted k' right
          )
          => InsertableHelper2 LT k B left k' right where
     type Insert2              LT k B left k' right = Balance (Insert1 k left) k' right
@@ -156,49 +157,49 @@ type family ShouldBalance (left :: TypeSet ki) (right :: TypeSet ki) :: BalanceA
 class Balanceable (left :: TypeSet ki) (k :: ki) (right :: TypeSet ki) where
     type Balance left k right :: TypeSet ki
 
-instance (ShouldBalance left right ~ action, 
+instance (ShouldBalance left right ~ action,
           BalanceableHelper action left k right
-         ) 
+         )
          => Balanceable left k right where
-    -- FIXME possible duplicate work with ShouldBalance: both in constraint and in associated type family. 
+    -- FIXME possible duplicate work with ShouldBalance: both in constraint and in associated type family.
     -- Is that bad? How to avoid it?
     type Balance left k right = Balance' (ShouldBalance left right) left k right
-    
-class BalanceableHelper (action :: BalanceAction) 
-                        (left :: TypeSet ki) 
-                        (k :: ki) 
+
+class BalanceableHelper (action :: BalanceAction)
+                        (left :: TypeSet ki)
+                        (k :: ki)
                         (right :: TypeSet ki) where
     type Balance' action left k right :: TypeSet ki
 
 -- balance (T R a x b) y (T R c z d) = T R (T B a x b) y (T B c z d)
 instance BalanceableHelper BalanceSpecial (N R left1 k1 right1) kx (N R left2 k2 right2) where
-    type Balance'          BalanceSpecial (N R left1 k1 right1) kx (N R left2 k2 right2) = 
+    type Balance'          BalanceSpecial (N R left1 k1 right1) kx (N R left2 k2 right2) =
                                       N R (N B left1 k1 right1) kx (N B left2 k2 right2)
 
 -- balance (T R (T R a x b) y c) z d = T R (T B a x b) y (T B c z d)
 instance BalanceableHelper BalanceLL (N R (N R a k1 b) k2 c) k3 d where
-    type Balance'          BalanceLL (N R (N R a k1 b) k2 c) k3 d = 
+    type Balance'          BalanceLL (N R (N R a k1 b) k2 c) k3 d =
                                  N R (N B a k1 b) k2 (N B c k3 d)
 
 -- balance (T R a x (T R b y c)) z d = T R (T B a x b) y (T B c z d)
 instance BalanceableHelper BalanceLR (N R a k1 (N R b k2 c)) k3 d where
-    type Balance'          BalanceLR (N R a k1 (N R b k2 c)) k3 d = 
-                                 N R (N B a k1 b) k2 (N B c k3 d) 
+    type Balance'          BalanceLR (N R a k1 (N R b k2 c)) k3 d =
+                                 N R (N B a k1 b) k2 (N B c k3 d)
 
 -- balance a x (T R (T R b y c) z d) = T R (T B a x b) y (T B c z d)
 instance BalanceableHelper BalanceRL a k1 (N R (N R b k2 c) k3 d) where
-    type Balance'          BalanceRL a k1 (N R (N R b k2 c) k3 d) = 
-                                 N R (N B a k1 b) k2 (N B c k3 d) 
+    type Balance'          BalanceRL a k1 (N R (N R b k2 c) k3 d) =
+                                 N R (N B a k1 b) k2 (N B c k3 d)
 
 
 -- balance a x (T R b y (T R c z d)) = T R (T B a x b) y (T B c z d)
 instance BalanceableHelper BalanceRR a k1(N R b k2 (N R c k3 d)) where
-    type Balance'          BalanceRR a k1(N R b k2 (N R c k3 d)) = 
-                                 N R (N B a k1 b) k2 (N B c k3 d) 
+    type Balance'          BalanceRR a k1(N R b k2 (N R c k3 d)) =
+                                 N R (N B a k1 b) k2 (N B c k3 d)
 
 -- balance a x b = T B a x b
 instance BalanceableHelper DoNotBalance a k b where
-    type Balance'          DoNotBalance a k b = N B a k b 
+    type Balance'          DoNotBalance a k b = N B a k b
 
 
 --- Member
@@ -256,16 +257,16 @@ instance BalanceableHelperL False (N R left1 k1 right1) k2 right2 where
 
 -- balleft bl x (T B a y b) = balance bl x (T R a y b)
 -- the @(N B in the call to balance tree is misleading, as it is ingored...
-instance (N R t2 z t3 ~ g, BalanceableHelper (ShouldBalance t1 g) t1 y g) => 
+instance (N R t2 z t3 ~ g, BalanceableHelper (ShouldBalance t1 g) t1 y g) =>
     BalanceableHelperL True t1 y (N B t2 z t3) where
-    type BalL'         True t1 y (N B t2 z t3)     
+    type BalL'         True t1 y (N B t2 z t3)
                  =  Balance t1 y (N R t2 z t3)
 
 -- balleft bl x (T R (T B a y b) z c) = T R (T B bl x a) y (balance b z (sub1 c))
-instance (N R l k r ~ g, BalanceableHelper    (ShouldBalance t3 g) t3 z g) => 
+instance (N R l k r ~ g, BalanceableHelper    (ShouldBalance t3 g) t3 z g) =>
     BalanceableHelperL True t1 y (N R (N B t2 u t3) z (N B l k r)) where
     type BalL'         True t1 y (N R (N B t2 u t3) z (N B l k r)) =
-                             N R (N B t1 y t2) u (Balance t3 z (N R l k r))          
+                             N R (N B t1 y t2) u (Balance t3 z (N R l k r))
 
 
 -- balright :: RB a -> a -> RB a -> RB a
@@ -292,16 +293,16 @@ instance BalanceableHelperR False right2 k2 (N R left1 k1 right1) where
                                   (N R right2 k2 (N B left1 k1 right1))
 
 -- balright (T B a x b) y bl = balance (T R a x b) y bl
-instance (N R t2 z t3 ~ g, ShouldBalance g t1 ~ shouldbalance, BalanceableHelper shouldbalance g y t1) => 
+instance (N R t2 z t3 ~ g, ShouldBalance g t1 ~ shouldbalance, BalanceableHelper shouldbalance g y t1) =>
     BalanceableHelperR True (N B t2 z t3) y t1 where
-    type BalR'         True (N B t2 z t3) y t1     
+    type BalR'         True (N B t2 z t3) y t1
              =  Balance (N R t2 z t3) y t1
 
 -- balright (T R a x (T B b y c)) z bl = T R (balance (sub1 a) x b) y (T B c z bl)
-instance (N R t2 u t3 ~ g, ShouldBalance g l ~ shouldbalance, BalanceableHelper shouldbalance g z l) => 
+instance (N R t2 u t3 ~ g, ShouldBalance g l ~ shouldbalance, BalanceableHelper shouldbalance g z l) =>
     BalanceableHelperR True (N R (N B t2 u t3) z (N B l k r)) y t1 where
     type BalR'         True (N R (N B t2 u t3) z (N B l k r)) y t1 =
-                             N R (Balance (N R t2 u t3) z l) k (N B r y t1) 
+                             N R (Balance (N R t2 u t3) z l) k (N B r y t1)
 -- app :: RB a -> RB a -> RB a
 -- app E x = x
 -- app x E = x
@@ -309,7 +310,7 @@ instance (N R t2 u t3 ~ g, ShouldBalance g l ~ shouldbalance, BalanceableHelper 
 --  case app b c of
 --      T R b' z c' -> T R(T R a x b') z (T R c' y d)
 --      bc -> T R a x (T R bc y d)
--- app (T B a x b) (T B c y d) = 
+-- app (T B a x b) (T B c y d) =
 --  case app b c of
 --      T R b' z c' -> T R(T B a x b') z (T B c' y d)
 --      bc -> balleft a x (T B bc y d)
@@ -332,21 +333,21 @@ instance Fuseable (N color left k right) E where
     type Fuse (N color left k right) E = N color left k right
 
 -- app a (T R b x c) = T R (app a b) x c
-instance Fuseable (N B left1 k1 right1) left2 
+instance Fuseable (N B left1 k1 right1) left2
     => Fuseable (N B left1 k1 right1) (N R left2 k2 right2) where
     type Fuse   (N B left1 k1 right1) (N R left2 k2 right2) = N R (Fuse (N B left1 k1 right1) left2) k2 right2
 
 
 -- app (T R a x b) c = T R a x (app b c)
-instance Fuseable right1 (N B left2 k2 right2) 
+instance Fuseable right1 (N B left2 k2 right2)
     => Fuseable (N R left1 k1 right1) (N B left2 k2 right2) where
     type Fuse   (N R left1 k1 right1) (N B left2 k2 right2) = N R left1 k1 (Fuse right1 (N B left2 k2 right2))
 
 
 -- app (T R a x b) (T R c y d) =
-instance (Fuseable right1 left2, Fuse right1 left2 ~ fused, FuseableHelper1 fused (N R left1 k1 right1) (N R left2 k2 right2)) 
+instance (Fuseable right1 left2, Fuse right1 left2 ~ fused, FuseableHelper1 fused (N R left1 k1 right1) (N R left2 k2 right2))
     => Fuseable (N R left1 k1 right1) (N R left2 k2 right2) where
-    type Fuse   (N R left1 k1 right1) (N R left2 k2 right2) = Fuse1 (Fuse right1 left2) (N R left1 k1 right1) (N R left2 k2 right2) 
+    type Fuse   (N R left1 k1 right1) (N R left2 k2 right2) = Fuse1 (Fuse right1 left2) (N R left1 k1 right1) (N R left2 k2 right2)
 
 class FuseableHelper1 (fused :: TypeSet ki) (l :: TypeSet ki) (r :: TypeSet ki) where
     type Fuse1 fused l r :: TypeSet ki
@@ -355,7 +356,7 @@ class FuseableHelper1 (fused :: TypeSet ki) (l :: TypeSet ki) (r :: TypeSet ki) 
 --  case app b c of
 --      T R b' z c' -> T R (T R a x b') z (T R c' y d)
 -- FIXME: The Fuseable constraint is repeated from avobe :(
-instance (Fuseable right1 left2, Fuse right1 left2 ~ N R s1 z s2) 
+instance (Fuseable right1 left2, Fuse right1 left2 ~ N R s1 z s2)
     => FuseableHelper1 (N R s1 z s2) (N R left1 k1 right1) (N R left2 k2 right2) where
     type Fuse1         (N R s1 z s2) (N R left1 k1 right1) (N R left2 k2 right2) = N R (N R left1 k1 s1) z (N R s2 k2 right2)
 
@@ -365,7 +366,7 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N R s1 z s2)
 --      ...
 --      bc -> T R a x (T R bc y d)
 -- FIXME: The Fuseable constraint is repeated from above :(
-instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z s2) 
+instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z s2)
     => FuseableHelper1 (N B s1 z s2) (N R left1 k1 right1) (N R left2 k2 right2) where
     type Fuse1         (N B s1 z s2) (N R left1 k1 right1) (N R left2 k2 right2) = N R left1 k1 (N R (N B s1 z s2) k2 right2)
 
@@ -376,35 +377,35 @@ instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z s2)
 instance FuseableHelper1 E (N R left1 k1 E) (N R E k2 right2) where
     type Fuse1           E (N R left1 k1 E) (N R E k2 right2) = N R left1 k1 (N R E k2 right2)
 
--- app (T B a x b) (T B c y d) = 
-instance (Fuseable right1 left2, Fuse right1 left2 ~ fused, FuseableHelper2 fused (N B left1 k1 right1) (N B left2 k2 right2)) 
+-- app (T B a x b) (T B c y d) =
+instance (Fuseable right1 left2, Fuse right1 left2 ~ fused, FuseableHelper2 fused (N B left1 k1 right1) (N B left2 k2 right2))
     => Fuseable (N B left1 k1 right1) (N B left2 k2 right2) where
-    type Fuse   (N B left1 k1 right1) (N B left2 k2 right2) = Fuse2 (Fuse right1 left2) (N B left1 k1 right1) (N B left2 k2 right2) 
+    type Fuse   (N B left1 k1 right1) (N B left2 k2 right2) = Fuse2 (Fuse right1 left2) (N B left1 k1 right1) (N B left2 k2 right2)
 
 -- could FuseableHelper1 and FuseableHelper2 be, well... fused?
 class FuseableHelper2 (fused :: TypeSet ki) (l :: TypeSet ki) (r :: TypeSet ki) where
     type Fuse2 fused l r :: TypeSet ki
 
--- app (T B a x b) (T B c y d) = 
+-- app (T B a x b) (T B c y d) =
 --  case app b c of
 --      T R b' z c' -> T R (T B a x b') z (T B c' y d)
-instance (Fuseable right1 left2, Fuse right1 left2 ~ N R s1 z s2) 
+instance (Fuseable right1 left2, Fuse right1 left2 ~ N R s1 z s2)
     => FuseableHelper2 (N R s1 z s2) (N B left1 k1 right1) (N B left2 k2 right2) where
     type Fuse2         (N R s1 z s2) (N B left1 k1 right1) (N B left2 k2 right2) = N R (N B left1 k1 s1) z (N B s2 k2 right2)
 
--- app (T B a x b) (T B c y d) = 
+-- app (T B a x b) (T B c y d) =
 --  case app b c of
 --      ...
 --      bc -> balleft a x (T B bc y d)
-instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z s2, BalanceableL left1 k1 (N B (N B s1 z s2) k2 right2)) 
+instance (Fuseable right1 left2, Fuse right1 left2 ~ N B s1 z s2, BalanceableL left1 k1 (N B (N B s1 z s2) k2 right2))
     => FuseableHelper2 (N B s1 z s2) (N B left1 k1 right1) (N B left2 k2 right2) where
     type Fuse2         (N B s1 z s2) (N B left1 k1 right1) (N B left2 k2 right2) = BalL left1 k1 (N B (N B s1 z s2) k2 right2)
 
--- app (T B a x b) (T B c y d) = 
+-- app (T B a x b) (T B c y d) =
 --  case app b c of
 --      ...
 --      bc -> balleft a x (T B bc y d)
-instance (BalanceableL left1 k1 (N B E k2 right2)) 
+instance (BalanceableL left1 k1 (N B E k2 right2))
     => FuseableHelper2 E (N B left1 k1 E) (N B E k2 right2) where
     type Fuse2         E (N B left1 k1 E) (N B E k2 right2) = BalL left1 k1 (N B E k2 right2)
 
@@ -424,12 +425,12 @@ class DelableL (k :: ki) (l :: TypeSet ki) (kx :: ki)  (r :: TypeSet ki) where
     type DelL k l kx r :: TypeSet ki
 
 --  delformLeft a@(T B _ _ _) y b = balleft (del a) y b
-instance (N B leftz kz rightz ~ g, Delable k g, Del k g ~ deleted, BalanceableL deleted kx right) 
+instance (N B leftz kz rightz ~ g, Delable k g, Del k g ~ deleted, BalanceableL deleted kx right)
     => DelableL k (N B leftz kz rightz) kx right where
     type DelL   k (N B leftz kz rightz) kx right = BalL (Del k (N B leftz kz rightz)) kx right
 
 --  delformLeft a y b = T R (del a) y b
-instance (Delable k (N R leftz kz rightz)) 
+instance (Delable k (N R leftz kz rightz))
     => DelableL k (N R leftz kz rightz) kx right where
     type DelL   k (N R leftz kz rightz) kx right = N R (Del k (N R leftz kz rightz)) kx right
 
@@ -443,13 +444,13 @@ class DelableR (k :: ki) (l :: TypeSet ki) (kx :: ki) (r :: TypeSet ki) where
     type DelR k l kx r :: TypeSet ki
 
 --  delformRight a y b@(T B _ _ _) = balright a y (del b)
-instance (N B leftz kz rightz ~ g, Delable k g, Del k g ~ deleted, BalanceableR left kx deleted) 
+instance (N B leftz kz rightz ~ g, Delable k g, Del k g ~ deleted, BalanceableR left kx deleted)
     => DelableR k left kx (N B leftz kz rightz) where
     type DelR   k left kx (N B leftz kz rightz) = BalR left kx (Del k (N B leftz kz rightz))
-   
+
 
 --  delformRight a y b = T R a y (del b)
-instance (Delable k (N R leftz kz rightz)) 
+instance (Delable k (N R leftz kz rightz))
     => DelableR k left kx (N R leftz kz rightz) where
     type   DelR k left kx (N R leftz kz rightz) = N R left kx (Del k (N R leftz kz rightz))
 
@@ -501,7 +502,7 @@ instance (Delable k t, Del k t ~ deleted, CanMakeBlack deleted) => Removable k t
 -- {- Version 1, 'untyped' -}
 -- data Color = R | B deriving Show
 -- data RB a = E | T Color (RB a) a (RB a) deriving Show
--- 
+--
 -- {- Insertion and membership test as by Okasaki -}
 -- insert :: Ord a => a -> RB a -> RB a
 -- insert x s =
@@ -517,8 +518,8 @@ instance (Delable k t, Del k t ~ deleted, CanMakeBlack deleted) => Removable k t
 --      | x<y = T R (ins a) y b
 --      | x>y = T R a y (ins b)
 --      | otherwise = s
--- 
--- 
+--
+--
 -- {- balance: first equation is new,
 --    to make it work with a weaker invariant -}
 -- balance :: RB a -> a -> RB a -> RB a
@@ -535,7 +536,7 @@ instance (Delable k t, Del k t ~ deleted, CanMakeBlack deleted) => Removable k t
 --  | x<y = member x a
 --  | x>y = member x b
 --  | otherwise = True
--- 
+--
 -- {- deletion a la SMK -}
 -- delete :: Ord a => a -> RB a -> RB a
 -- delete x t =
@@ -551,21 +552,21 @@ instance (Delable k t, Del k t ~ deleted, CanMakeBlack deleted) => Removable k t
 --
 --  delformRight a y b@(T B _ _ _) = balright a y (del b)
 --  delformRight a y b = T R a y (del b)
--- 
+--
 -- balleft :: RB a -> a -> RB a -> RB a
 -- balleft (T R a x b) y c = T R (T B a x b) y c
 -- balleft bl x (T B a y b) = balance bl x (T R a y b)
 -- balleft bl x (T R (T B a y b) z c) = T R (T B bl x a) y (balance b z (sub1 c))
--- 
+--
 -- balright :: RB a -> a -> RB a -> RB a
 -- balright a x (T R b y c) = T R a x (T B b y c)
 -- balright (T B a x b) y bl = balance (T R a x b) y bl
 -- balright (T R a x (T B b y c)) z bl = T R (balance (sub1 a) x b) y (T B c z bl)
--- 
+--
 -- sub1 :: RB a -> RB a
 -- sub1 (T B a x b) = T R a x b
 -- sub1 _ = error "invariance violation"
--- 
+--
 -- app :: RB a -> RB a -> RB a
 -- app E x = x
 -- app x E = x
@@ -573,7 +574,7 @@ instance (Delable k t, Del k t ~ deleted, CanMakeBlack deleted) => Removable k t
 --  case app b c of
 --      T R b' z c' -> T R (T R a x b') z (T R c' y d)
 --      bc -> T R a x (T R bc y d)
--- app (T B a x b) (T B c y d) = 
+-- app (T B a x b) (T B c y d) =
 --  case app b c of
 --      T R b' z c' -> T R(T B a x b') z (T B c' y d)
 --      bc -> balleft a x (T B bc y d)

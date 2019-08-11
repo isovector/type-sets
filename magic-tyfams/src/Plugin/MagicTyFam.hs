@@ -134,6 +134,8 @@ data MagicTyFamResult = MagicTyFamResult
 -- and now solve @MyMagicFamImpl@ via 'magicTyFamPlugin'. The error message
 -- will only appear when @MyMagicFamImpl@ is stuck, which is to say, if your
 -- plugin isn't enabled.
+--
+-- @since 0.1.1.0
 type family WhenStuck (expr :: k) (b :: k) :: k where
   -- The type pattern @_ Foo@ is interpretered by the compiler as being of
   -- any kind. This is great and exactly what we want here, except that things

@@ -20,11 +20,11 @@ test2 = id  -- False is not a member :(
 -- RB tests
 --
 --
-type MyRBSet = RB.FromList '[ 
-                              Bool 
-                            , String 
-                            , String 
-                            , String 
+type MyRBSet = RB.FromList '[
+                              Bool
+                            , String
+                            , String
+                            , String
                             , Maybe Int
                             , Maybe Char
                             , Char
@@ -58,8 +58,8 @@ type MyReducedRBSet = RB.Remove Bool
                       MyRBSet))))))
 
 type MyReducedToEmptyRBSet =
-                      RB.Remove (Maybe Int) 
-                    ( RB.Remove (Maybe Char) 
+                      RB.Remove (Maybe Int)
+                    ( RB.Remove (Maybe Char)
                     ( RB.Remove Char
                     ( RB.Remove (Either Bool Int)
                     ( RB.Remove (Maybe Bool)
@@ -74,10 +74,10 @@ type MyReducedToEmptyRBSet =
                     ( RB.Remove (Either Char (Identity Bool))
                       MyReducedRBSet)))))))))))))
 
-type MyMergedRBSet = RB.Merge (RB.FromList '[Const Int Bool, 
-                                             Const Int Char, 
+type MyMergedRBSet = RB.Merge (RB.FromList '[Const Int Bool,
+                                             Const Int Char,
                                              Const Int String])
-                              MyReducedRBSet 
+                              MyReducedRBSet
 
 testRB1 :: Proxy (RB.Member (Bool) MyRBSet) -> Proxy 'True
 testRB1 = id
