@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes   #-}
+{-# LANGUAGE AutoDeriveTypeable    #-}
 {-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -9,6 +10,7 @@
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE RoleAnnotations       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -30,6 +32,7 @@ module Type.Set.Variant
 
     -- * Internal stuff
   , proveFollowInsert
+  , toSideList
   , SSide (..)
   , FromSides (..)
   ) where
@@ -38,6 +41,7 @@ import Data.Type.Equality
 import Type.Set
 import Data.Kind
 import Data.Constraint
+import Type.Reflection
 import Unsafe.Coerce
 
 ------------------------------------------------------------------------------
@@ -69,6 +73,14 @@ data SSide (ss :: [Side]) where
   SL :: SSide ss -> SSide ('L ': ss)
   SR :: SSide ss -> SSide ('R ': ss)
 
+deriving instance Typeable (SSide ss)
+
+------------------------------------------------------------------------------
+-- | Get the type level version of a path into a BST.
+toSideList :: SSide ss -> [Side]
+toSideList SNil = []
+toSideList (SL s) = L : toSideList s
+toSideList (SR s) = R : toSideList s
 
 ------------------------------------------------------------------------------
 -- | Get a singleton for a list of 'Side's.

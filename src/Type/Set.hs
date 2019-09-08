@@ -1,5 +1,7 @@
+{-# LANGUAGE AutoDeriveTypeable   #-}
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE PolyKinds            #-}
+{-# LANGUAGE StandaloneDeriving   #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -21,6 +23,7 @@ module Type.Set
   ) where
 
 import Type.Compare
+import Type.Reflection
 import GHC.TypeLits
 
 
@@ -37,7 +40,11 @@ data TypeSet a
 ------------------------------------------------------------------------------
 -- | Either left or right down a path.
 data Side = L | R
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Typeable)
+
+deriving instance Typeable 'L
+deriving instance Typeable 'R
+
 
 ------------------------------------------------------------------------------
 -- | /O(log n)/. Insert an element into the 'TypeSet'.

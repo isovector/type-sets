@@ -36,6 +36,7 @@ import Data.Type.Equality
 import Type.Set.Variant
 import Data.Functor.Classes
 import Data.Constraint
+import Type.Reflection
 import Type.Set
 
 ------------------------------------------------------------------------------
@@ -43,8 +44,7 @@ import Type.Set
 --   any of the 'Functor's within its 'TypeSet'. You can use 'toVariantF' to
 --   construct one, and 'fromVariantF' to pattern match it out.
 data VariantF (bst :: TypeSet (k -> *)) (a :: k) where
-  VariantF :: ()
-    => SSide ss -> Follow ss bst a -> VariantF bst a
+  VariantF :: SSide ss -> Follow ss bst a -> VariantF bst a
 type role VariantF nominal nominal
 
 ------------------------------------------------------------------------------
@@ -60,6 +60,7 @@ class HasF (f :: k -> *) (bst :: TypeSet (k -> *)) where
 
 instance ( Follow (Locate f bst) bst ~ f
          , FromSides (Locate f bst)
+         , Typeable (Locate f bst)
          ) => HasF f bst where
   toVariantF = VariantF (fromSides @(Locate f bst))
   fromVariantF (VariantF tag res) =
@@ -108,6 +109,29 @@ instance ( ForAllIn Functor bst
   traverse f (VariantF s r)
     = case forMember @_ @Traversable @bst s of
         Dict -> VariantF s <$> traverse f r
+
+instance ( ForAllIn Eq1 bst
+         , ForAllIn Typeable bst
+         ) => Eq1 (VariantF bst) where
+  liftEq eq (VariantF (s :: SSide ss) r) (VariantF (s':: SSide ss') r')
+    = case forMember @_ @Typeable @bst s of
+      Dict -> case forMember @_ @Typeable @bst s' of
+        Dict -> case eqTypeRep (typeRep @(Follow ss bst)) (typeRep @(Follow ss' bst)) of
+          Nothing -> False
+          Just HRefl -> case forMember @_ @Eq1 @bst s of
+            Dict -> liftEq eq r r'
+
+instance ( ForAllIn Eq1 bst
+         , ForAllIn Ord1 bst
+         , ForAllIn Typeable bst
+         ) => Ord1 (VariantF bst) where
+  liftCompare cmp (VariantF (s :: SSide ss) r) (VariantF (s':: SSide ss') r')
+    = case forMember @_ @Typeable @bst s of
+      Dict -> case forMember @_ @Typeable @bst s' of
+        Dict -> case eqTypeRep (typeRep @(Follow ss bst)) (typeRep @(Follow ss' bst)) of
+          Nothing -> compare (toSideList s) (toSideList s')
+          Just HRefl -> case forMember @_ @Ord1 @bst s of
+            Dict -> liftCompare cmp r r'
 
 instance ( ForAllIn Show1 bst
          ) => Show1 (VariantF bst) where
