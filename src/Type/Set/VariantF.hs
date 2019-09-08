@@ -182,10 +182,10 @@ instance ( ForAllIn Show1 bst
         Dict -> case forMember @_ @Typeable @bst s of
           Dict -> case forMember @_ @Functor @bst s of
             Dict -> showParen (d > 5) $
-              (showString "toVariantF @" :: ShowS) .
+              (showString "toVariantF @(" :: ShowS) .
               showsTypeRep (typeOf (const SomeType <$> r)) .
-              showString " " .
-              liftShowsPrec prec lPrec 4 r
+              showString ") $ " .
+              liftShowsPrec prec lPrec (d+1) r
 
 instance ( ForAllIn Show1 bst
          , ForAllIn Typeable bst
