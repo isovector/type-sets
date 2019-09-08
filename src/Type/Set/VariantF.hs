@@ -122,6 +122,12 @@ instance ( ForAllIn Eq1 bst
             Dict -> liftEq eq r r'
 
 instance ( ForAllIn Eq1 bst
+         , ForAllIn Typeable bst
+         , Eq a
+         ) => Eq (VariantF bst a) where
+  (==) = eq1
+
+instance ( ForAllIn Eq1 bst
          , ForAllIn Ord1 bst
          , ForAllIn Typeable bst
          ) => Ord1 (VariantF bst) where
@@ -132,6 +138,14 @@ instance ( ForAllIn Eq1 bst
           Nothing -> compare (toSideList s) (toSideList s')
           Just HRefl -> case forMember @_ @Ord1 @bst s of
             Dict -> liftCompare cmp r r'
+
+
+instance ( ForAllIn Eq1 bst
+         , ForAllIn Ord1 bst
+         , ForAllIn Typeable bst
+         , Ord a
+         ) => Ord (VariantF bst a) where
+  compare = compare1
 
 instance ( ForAllIn Show1 bst
          ) => Show1 (VariantF bst) where

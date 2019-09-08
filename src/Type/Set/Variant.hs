@@ -170,3 +170,31 @@ decompRoot :: Variant ('Branch t lbst rbst) -> Split t lbst rbst
 decompRoot (Variant SNil t) = Root t
 decompRoot (Variant (SL s) t) = LSplit (Variant s t)
 decompRoot (Variant (SR s) t) = RSplit (Variant s t)
+
+instance (ForAllIn Eq bst, ForAllIn Typeable bst) => Eq (Variant bst) where
+  (Variant s r) == (Variant s' r')
+    = case forMember @_ @Typeable @bst s of
+      Dict -> case forMember @_ @Typeable @bst s' of
+        Dict -> case eqTypeRep (typeOf r) (typeOf r') of
+          Nothing -> False
+          Just HRefl -> case forMember @_ @Eq @bst s of
+            Dict -> r == r'
+
+instance (ForAllIn Eq bst
+         , ForAllIn Ord bst
+         , ForAllIn Typeable bst
+         ) => Ord (Variant bst) where
+  compare (Variant s r) (Variant s' r')
+    = case forMember @_ @Typeable @bst s of
+      Dict -> case forMember @_ @Typeable @bst s' of
+        Dict -> case eqTypeRep (typeOf r) (typeOf r') of
+          Nothing -> compare (toSideList s) (toSideList s')
+          Just HRefl -> case forMember @_ @Ord @bst s of
+            Dict -> compare r r'
+
+instance (ForAllIn Show bst
+         ) => Show (Variant bst) where
+  showsPrec i (Variant s r)
+    = case forMember @_ @Show @bst s of
+      Dict -> showParen (i > 5) $
+        showString "toVariant $ " . showsPrec 1 r
