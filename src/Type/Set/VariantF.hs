@@ -166,6 +166,8 @@ instance ( ForAllIn Functor bst
     = case forMember @_ @Traversable @bst s of
         Dict -> VariantF s <$> traverse f r
 
+data SomeType = SomeType
+
 -- | I have no good way to ensure that a is typeable so the output replaces
 --   the parameter type with '\'?\''
 instance ( ForAllIn Show1 bst
@@ -181,9 +183,9 @@ instance ( ForAllIn Show1 bst
           Dict -> case forMember @_ @Functor @bst s of
             Dict -> showParen (d > 5) $
               (showString "toVariantF @(" :: ShowS) .
-              showsTypeRep (typeOf (const '?' <$> r)) .
+              showsTypeRep (typeOf (const SomeType <$> r)) .
               showString ") " .
-              liftShowsPrec prec lPrec 5 r
+              liftShowsPrec prec lPrec 4 r
 
 instance ( ForAllIn Show1 bst
          , ForAllIn Typeable bst
