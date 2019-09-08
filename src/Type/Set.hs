@@ -132,4 +132,3 @@ type family Follow (ss :: [Side]) (bst :: TypeSet k) :: k where
   Follow ('L ': ss) ('Branch _ l _) = Follow ss l
   Follow ('R ': ss) ('Branch _ _ r) = Follow ss r
   Follow ss 'Empty = TypeError ('Text "Unable to follow: " ':<>: 'ShowType ss)
-
