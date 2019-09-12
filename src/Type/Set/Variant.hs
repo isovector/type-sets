@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes   #-}
+{-# LANGUAGE AutoDeriveTypeable    #-}
 {-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -6,8 +7,10 @@
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE RoleAnnotations       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -22,19 +25,46 @@ module Type.Set.Variant
     -- * Decomposition proofs
   , decompRoot
   , Split (..)
+  , ForAllIn(..)
 
     -- * Weakening
   , weaken
 
     -- * Internal stuff
   , proveFollowInsert
+  , toSideList
   , SSide (..)
   , FromSides (..)
   ) where
 
 import Data.Type.Equality
 import Type.Set
+import Data.Kind
+import Data.Constraint
+import Type.Reflection
 import Unsafe.Coerce
+
+------------------------------------------------------------------------------
+-- | A proof that `ForAllIn c bst` implies `c (Follow ss bst)`.
+--   Given an `s :: SSide ss` use `forMember @ss @c @bst s` to get a
+--   `Dict (c (Follow ss bst))`.
+class ForAllIn (c :: k -> Constraint) (bst :: TypeSet k) where
+  forMember :: (Follow ss bst ~ f) =>
+    SSide ss -> Dict (c (Follow ss bst))
+
+instance (c a, ForAllIn c l, ForAllIn c r
+         ) => ForAllIn (c :: k -> Constraint) ('Branch (a :: k) (l :: TypeSet k) (r :: TypeSet k)) where
+
+  forMember SNil = (Dict :: Dict (c a))
+  forMember (SL ss)
+    = case (unsafeCoerce HRefl :: Follow ('L ': ss) ('Branch a l r) :~~: Follow ss l) of
+        HRefl -> forMember @_ @c @l ss
+  forMember (SR ss)
+    = case (unsafeCoerce HRefl :: Follow ('R ': ss) ('Branch a l r) :~~: Follow ss r) of
+        HRefl -> forMember @_ @c @r ss
+
+instance () => ForAllIn (c :: k -> Constraint) 'Empty where
+  forMember = error "Somehow got invalid path into TypeSet"
 
 ------------------------------------------------------------------------------
 -- | Singletons for 'Side's.
@@ -42,6 +72,15 @@ data SSide (ss :: [Side]) where
   SNil :: SSide '[]
   SL :: SSide ss -> SSide ('L ': ss)
   SR :: SSide ss -> SSide ('R ': ss)
+
+deriving instance Typeable (SSide ss)
+
+------------------------------------------------------------------------------
+-- | Get the type level version of a path into a BST.
+toSideList :: SSide ss -> [Side]
+toSideList SNil = []
+toSideList (SL s) = L : toSideList s
+toSideList (SR s) = R : toSideList s
 
 ------------------------------------------------------------------------------
 -- | Get a singleton for a list of 'Side's.
@@ -106,27 +145,23 @@ instance TestEquality SSide where
   testEquality (SR _) (SL _) = Nothing
   testEquality (SL _) (SR _) = Nothing
 
-
 ------------------------------------------------------------------------------
 -- | A proof that inserting into a @bst@ doesn't affect the position of
 -- anything already in the tree.
-proveFollowInsert :: Follow ss (Insert t bst) :~: Follow ss bst
-proveFollowInsert = unsafeCoerce Refl
-
+proveFollowInsert :: Follow ss (Insert t bst) :~~: Follow ss bst
+proveFollowInsert = unsafeCoerce HRefl
 
 ------------------------------------------------------------------------------
 -- | Weaken a 'Variant' so that it can contain something else.
 weaken :: forall t bst. Variant bst -> Variant (Insert t bst)
 weaken (Variant (tag :: SSide ss) res) = Variant tag $
   case proveFollowInsert @ss @t @bst of
-    Refl -> res
-
+    HRefl -> res
 
 data Split t lbst rbst
   = Root t
   | LSplit (Variant lbst)
   | RSplit (Variant rbst)
-
 
 ------------------------------------------------------------------------------
 -- | Like 'fromVariant', but decomposes the 'Variant' into its left and right
@@ -136,3 +171,30 @@ decompRoot (Variant SNil t) = Root t
 decompRoot (Variant (SL s) t) = LSplit (Variant s t)
 decompRoot (Variant (SR s) t) = RSplit (Variant s t)
 
+instance (ForAllIn Eq bst, ForAllIn Typeable bst) => Eq (Variant bst) where
+  (Variant s r) == (Variant s' r')
+    = case forMember @_ @Typeable @bst s of
+      Dict -> case forMember @_ @Typeable @bst s' of
+        Dict -> case eqTypeRep (typeOf r) (typeOf r') of
+          Nothing -> False
+          Just HRefl -> case forMember @_ @Eq @bst s of
+            Dict -> r == r'
+
+instance (ForAllIn Eq bst
+         , ForAllIn Ord bst
+         , ForAllIn Typeable bst
+         ) => Ord (Variant bst) where
+  compare (Variant s r) (Variant s' r')
+    = case forMember @_ @Typeable @bst s of
+      Dict -> case forMember @_ @Typeable @bst s' of
+        Dict -> case eqTypeRep (typeOf r) (typeOf r') of
+          Nothing -> compare (toSideList s) (toSideList s')
+          Just HRefl -> case forMember @_ @Ord @bst s of
+            Dict -> compare r r'
+
+instance (ForAllIn Show bst
+         ) => Show (Variant bst) where
+  showsPrec i (Variant s r)
+    = case forMember @_ @Show @bst s of
+      Dict -> showParen (i > 5) $
+        showString "toVariant $ " . showsPrec 1 r
