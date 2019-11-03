@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 126aef2c1c7b51906a9165613f743faddd66f6448a2dc2466922d887da5c3b95
+-- hash: 04e73fd0eac32f73fce2565d62bf1f296648e11239fd14a465aef33cf055da4a
 
 name:           type-sets
 version:        0.1.1.0
@@ -47,7 +47,6 @@ test-suite type-sets-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      VariantSpec
       Paths_type_sets
   hs-source-dirs:
       test
