@@ -6,6 +6,7 @@
 
 module Type.Compare
   ( CmpType
+  , PolyKindedCmpType
   ) where
 
 import GHC.TypeLits
@@ -21,10 +22,14 @@ import Data.List
 --
 -- The actual /meaning/ of comparing types is left to your imagination. But it's
 -- deterministic so that's good enough.
-type family CmpType (a :: k) (b :: k) :: Ordering where
+type CmpType (a :: k) (b :: k) = PolyKindedCmpType a b
+
+-- | Like 'CmpType', but does not enforce that the types are of the
+-- same kind.
+type family PolyKindedCmpType (a :: ka) (b :: kb) :: Ordering where
   CmpType a             a = 'EQ
-  CmpType (a :: Nat)    b = CmpNat a b
-  CmpType (a :: Symbol) b = CmpSymbol a b
+  CmpType (a :: Nat)    (b :: Nat) = CmpNat a b
+  CmpType (a :: Symbol) (b :: Symbol) = CmpSymbol a b
 
   -- These instances are generated via '_generateCmpType'
   CmpType '(a1, a2) '(b1, b2) = OrderingSemigroup (CmpType a1 b1) (OrderingSemigroup (CmpType a2 b2) ('EQ))
@@ -99,7 +104,7 @@ type family OrderingSemigroup (a :: Ordering) (b :: Ordering) :: Ordering where
   OrderingSemigroup 'EQ b = b
   OrderingSemigroup a _   = a
 
-type family CmpTypeImpl (a :: k) (b :: k) :: Ordering where
+type family CmpTypeImpl (a :: ka) (b :: kb) :: Ordering where
 
 
 

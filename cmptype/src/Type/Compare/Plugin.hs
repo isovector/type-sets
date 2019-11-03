@@ -15,7 +15,7 @@ import TyCoRep
 -- | This plugin automagically solves 'Type.Compare.CmpType'. Enable the GHC
 -- flag @-fplugin=Type.Compare.Plugin@ in order to use it.
 plugin :: Plugin
-plugin = magicTyFamPlugin "cmptype" "Type.Compare" "CmpTypeImpl" $ \[_, a, b] -> do
+plugin = magicTyFamPlugin "cmptype" "Type.Compare" "CmpTypeImpl" $ \[_, _, a, b] -> do
   guard $ isTyFamFree a
   guard $ isTyFamFree b
   pure $ promoteOrdering $ compareTypes a b

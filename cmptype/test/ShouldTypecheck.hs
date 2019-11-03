@@ -120,3 +120,6 @@ testType22 = id
 
 testType23 :: Proxy (CmpType (Proxy "banana") (Proxy Int)) -> Proxy 'GT
 testType23 = id
+
+testType24 :: Proxy (PolyKindedCmpType "banana" Int) -> Proxy 'GT
+testType24 = id
