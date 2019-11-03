@@ -118,3 +118,8 @@ testType22 :: Proxy (CmpType '(String, Bool, '(Int, "b", String), Int)
                              '(String, Bool, '(Int, "b", String), Int)) -> Proxy 'EQ
 testType22 = id
 
+testType23 :: Proxy (CmpType (Proxy "banana") (Proxy Int)) -> Proxy 'GT
+testType23 = id
+
+testType24 :: Proxy (PolyKindedCmpType "banana" Int) -> Proxy 'GT
+testType24 = id
